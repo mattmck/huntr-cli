@@ -74,6 +74,6 @@ export class HuntrApiClient {
   }
 }
 
-export const createClient = (apiToken?: string): HuntrApiClient => {
+export const createClient = (apiToken: string): HuntrApiClient => {
   return new HuntrApiClient(apiToken);
 };

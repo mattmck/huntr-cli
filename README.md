@@ -4,11 +4,12 @@ A command-line interface tool for the [Huntr Organization API](https://docs.hunt
 
 ## Features
 
-- 🔐 Bearer token authentication
+- 🔐 Multiple authentication methods (CLI arg, env var, config file, keychain, prompt)
 - 📊 List and retrieve members, jobs, activities, and tags
 - 📄 JSON and table output formats
 - ♾️ Automatic pagination support
 - 🎯 Filter jobs and activities by member
+- 🔒 Secure token storage via macOS Keychain
 
 ## Installation
 
@@ -28,21 +29,87 @@ npm run build
 npm link
 ```
 
-## Configuration
+## Authentication
 
-Create a `.env` file in the project root with your API token:
+The CLI supports multiple ways to provide your API token, with the following priority order:
+
+1. **Command-line argument** (highest priority)
+2. **Environment variable**
+3. **Config file** (`~/.huntr/config.json`)
+4. **macOS Keychain**
+5. **Interactive prompt** (lowest priority)
+
+### Method 1: Command-line Argument
+
+Pass the token directly with any command:
+
+```bash
+huntr members list --token your_token_here
+```
+
+### Method 2: Environment Variable
+
+Set the `HUNTR_API_TOKEN` environment variable:
+
+```bash
+export HUNTR_API_TOKEN=your_token_here
+huntr members list
+```
+
+Or use a `.env` file in the project directory:
 
 ```bash
 cp .env.example .env
+# Edit .env and add: HUNTR_API_TOKEN=your_token_here
 ```
 
-Edit `.env` and add your token:
+### Method 3: Config File
 
-```
-HUNTR_API_TOKEN=your_token_here
+Save your token to `~/.huntr/config.json`:
+
+```bash
+huntr config set-token your_token_here
 ```
 
-Alternatively, you can pass the token directly when using the API programmatically.
+This is convenient for persistent storage without environment variables.
+
+### Method 4: macOS Keychain (Most Secure)
+
+Save your token securely to macOS Keychain:
+
+```bash
+huntr config set-token --keychain your_token_here
+```
+
+The token will be encrypted and stored securely in your system keychain.
+
+### Method 5: Interactive Prompt
+
+If no token is found, the CLI will prompt you to enter it:
+
+```bash
+huntr members list
+# You'll be prompted to enter your token and choose where to save it
+```
+
+### Managing Your Token
+
+Check which token sources are configured:
+
+```bash
+huntr config show-token
+```
+
+Clear saved tokens:
+
+```bash
+# Clear from all locations
+huntr config clear-token
+
+# Clear from specific location
+huntr config clear-token --config
+huntr config clear-token --keychain
+```
 
 ## Usage
 
@@ -134,6 +201,7 @@ huntr tags create "Interview Prep" --target job
 
 ### Global Options
 
+- `-t, --token <token>` - API token (overrides all other sources)
 - `-j, --json` - Output results as JSON
 - `-a, --all` - Fetch all pages (for paginated results)
 - `-l, --limit <number>` - Number of results per page (default: 100)
