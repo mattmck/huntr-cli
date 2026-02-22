@@ -10,7 +10,7 @@ export class HuntrApi {
   public activities: ActivitiesApi;
   public tags: TagsApi;
 
-  constructor(apiToken?: string) {
+  constructor(apiToken: string) {
     const client = createClient(apiToken);
     this.members = new MembersApi(client);
     this.jobs = new JobsApi(client);

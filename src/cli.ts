@@ -3,13 +3,22 @@
 import { Command } from 'commander';
 import { HuntrApi } from './api';
 import { Member, Job, Activity, Tag } from './types';
+import { TokenManager } from './config/token-manager';
 
 const program = new Command();
+const tokenManager = new TokenManager();
+
+// Helper to get API instance with token
+async function getApi(token?: string): Promise<HuntrApi> {
+  const apiToken = await tokenManager.getToken({ token });
+  return new HuntrApi(apiToken);
+}
 
 program
   .name('huntr')
   .description('CLI tool for Huntr Organization API')
-  .version('1.0.0');
+  .version('1.0.0')
+  .option('-t, --token <token>', 'API token (overrides all other sources)');
 
 // Members commands
 const members = program.command('members').description('Manage organization members');
@@ -20,9 +29,9 @@ members
   .option('-l, --limit <number>', 'Number of results per page', '100')
   .option('-a, --all', 'Fetch all pages')
   .option('-j, --json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command) => {
     try {
-      const api = new HuntrApi();
+      const api = await getApi(command.parent?.opts().token);
       
       if (options.all) {
         const allMembers: Member[] = [];
@@ -70,9 +79,9 @@ members
   .description('Get a specific member by ID')
   .argument('<id>', 'Member ID')
   .option('-j, --json', 'Output as JSON')
-  .action(async (id, options) => {
+  .action(async (id, options, command) => {
     try {
-      const api = new HuntrApi();
+      const api = await getApi(command.parent?.opts().token);
       const member = await api.members.get(id);
       
       if (options.json) {
@@ -104,9 +113,9 @@ jobs
   .option('-l, --limit <number>', 'Number of results per page', '100')
   .option('-a, --all', 'Fetch all pages')
   .option('-j, --json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command) => {
     try {
-      const api = new HuntrApi();
+      const api = await getApi(command.parent?.opts().token);
       
       if (options.all) {
         const allJobs: Job[] = [];
@@ -159,9 +168,9 @@ jobs
   .description('Get a specific job by ID')
   .argument('<id>', 'Job ID')
   .option('-j, --json', 'Output as JSON')
-  .action(async (id, options) => {
+  .action(async (id, options, command) => {
     try {
-      const api = new HuntrApi();
+      const api = await getApi(command.parent?.opts().token);
       const job = await api.jobs.get(id);
       
       if (options.json) {
@@ -197,9 +206,9 @@ activities
   .option('-l, --limit <number>', 'Number of results per page', '100')
   .option('-a, --all', 'Fetch all pages')
   .option('-j, --json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command) => {
     try {
-      const api = new HuntrApi();
+      const api = await getApi(command.parent?.opts().token);
       
       if (options.all) {
         const allActivities: Activity[] = [];
@@ -258,9 +267,9 @@ tags
   .option('-l, --limit <number>', 'Number of results per page', '100')
   .option('-a, --all', 'Fetch all pages')
   .option('-j, --json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command) => {
     try {
-      const api = new HuntrApi();
+      const api = await getApi(command.parent?.opts().token);
       
       if (options.all) {
         const allTags: Tag[] = [];
@@ -307,9 +316,9 @@ tags
   .argument('<name>', 'Tag name')
   .option('-t, --target <object>', 'Target object type')
   .option('-j, --json', 'Output as JSON')
-  .action(async (name, options) => {
+  .action(async (name, options, command) => {
     try {
-      const api = new HuntrApi();
+      const api = await getApi(command.parent?.opts().token);
       const tag = await api.tags.create(name, options.target);
       
       if (options.json) {
@@ -322,6 +331,78 @@ tags
           console.log(`  Color: ${tag.color}`);
         }
       }
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+// Config commands
+const config = program.command('config').description('Manage CLI configuration');
+
+config
+  .command('set-token')
+  .description('Save API token to config file or keychain')
+  .argument('<token>', 'API token to save')
+  .option('-k, --keychain', 'Save to macOS Keychain instead of config file')
+  .action(async (token, options) => {
+    try {
+      const location = options.keychain ? 'keychain' : 'config';
+      await tokenManager.saveToken(token, location);
+      
+      const locationName = options.keychain ? 'macOS Keychain' : '~/.huntr/config.json';
+      console.log(`✓ Token saved to ${locationName}`);
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+config
+  .command('show-token')
+  .description('Show which token sources are configured')
+  .action(async () => {
+    try {
+      const sources = await tokenManager.showTokenSources();
+      
+      console.log('\nConfigured token sources:');
+      console.log(`  Environment variable: ${sources.env ? '✓ Set' : '✗ Not set'}`);
+      console.log(`  Config file (~/.huntr/config.json): ${sources.config ? '✓ Set' : '✗ Not set'}`);
+      console.log(`  macOS Keychain: ${sources.keychain ? '✓ Set' : '✗ Not set'}`);
+      
+      if (!sources.env && !sources.config && !sources.keychain) {
+        console.log('\nNo token found. Use "huntr config set-token <token>" to configure.');
+      }
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+config
+  .command('clear-token')
+  .description('Remove saved API token')
+  .option('-k, --keychain', 'Clear from macOS Keychain only')
+  .option('-c, --config', 'Clear from config file only')
+  .action(async (options) => {
+    try {
+      let location: 'config' | 'keychain' | 'all' = 'all';
+      
+      if (options.keychain && !options.config) {
+        location = 'keychain';
+      } else if (options.config && !options.keychain) {
+        location = 'config';
+      }
+      
+      await tokenManager.clearToken(location);
+      
+      const message = location === 'all' 
+        ? 'all locations'
+        : location === 'keychain'
+        ? 'macOS Keychain'
+        : 'config file';
+      
+      console.log(`✓ Token cleared from ${message}`);
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
       process.exit(1);
