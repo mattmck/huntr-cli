@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
+      - 'src/**'
+      - '.github/workflows/release.yml'
+
+jobs:
+  release:
+    name: Create Release & Artifacts
+    runs-on: ubuntu-latest
+    # Only run if commit message contains [release] tag or version was bumped
+    if: |
+      contains(github.event.head_commit.message, '[release]') ||
+      contains(github.event.head_commit.message, 'chore(release)') ||
+      startsWith(github.event.head_commit.message, 'v')
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Get version from package.json
+        id: package
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "refs/tags/${{ steps.package.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Create distribution archives
+        run: |
+          mkdir -p dist-archives
+          cd dist
+          tar -czf ../dist-archives/huntr-cli-${{ steps.package.outputs.version }}.tar.gz .
+          zip -r ../dist-archives/huntr-cli-${{ steps.package.outputs.version }}.zip .
+          cd ..
+
+      - name: Create git tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.package.outputs.tag }}" -m "Version ${{ steps.package.outputs.version }}"
+          git push origin "${{ steps.package.outputs.tag }}"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline --format="- %s")
+          else
+            COMMITS=$(git log "$LAST_TAG..HEAD" --oneline --format="- %s")
+          fi
+
+          # Save to file for use in release body
+          echo "$COMMITS" > changelog.txt
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.package.outputs.tag }}
+          release_name: Version ${{ steps.package.outputs.version }}
+          body_path: changelog.txt
+          draft: false
+          prerelease: ${{ contains(steps.package.outputs.version, '-') }}
+
+      - name: Upload release assets
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ steps.package.outputs.version }}
+          path: dist-archives/
+          retention-days: 90
+
+      - name: Notify release created
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          echo "✅ Release v${{ steps.package.outputs.version }} created!"
+          echo "   Tag: ${{ steps.package.outputs.tag }}"
+          echo "   Artifacts uploaded"
+          echo "   Publishing to npm will start automatically..."
+
+      - name: Sleep before npm publish
+        if: steps.check_tag.outputs.exists == 'false'
+        run: sleep 10  # Give GitHub time to create release
+
+      - name: Trigger publish workflow
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publish.yml',
+              ref: 'main'
+            })
