@@ -13,6 +13,8 @@ jobs:
   release:
     name: Create Release & Artifacts
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     # The 'paths' filter above ensures this only runs on package.json changes
     # Tag existence check prevents duplicate releases
 
