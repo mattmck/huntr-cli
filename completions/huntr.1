@@ -1,0 +1,266 @@
+.TH HUNTR 1 "February 2026" "huntr-cli 1.0.0" "User Commands"
+.SH NAME
+huntr \- CLI tool for managing your Huntr job search board
+.SH SYNOPSIS
+.B huntr
+[\fIGLOBAL OPTIONS\fR] \fICOMMAND\fR [\fICOMMAND OPTIONS\fR] [\fIARGUMENTS\fR]
+.SH DESCRIPTION
+huntr is a command-line interface for managing your Huntr job search board.
+Track activities, search jobs, and manage your application pipeline from the terminal.
+.SH GLOBAL OPTIONS
+.TP
+.BR \-t , " \-\-token" " TOKEN"
+API token for authentication (overrides all other sources)
+.TP
+.BR \-h , " \-\-help"
+Display help for the command
+.TP
+.BR \-V , " \-\-version"
+Output version number
+.SH COMMANDS
+.SS User Profile
+.TP
+.B me [\-j | \-\-json]
+Show your user profile information
+.RS
+Options:
+.TP
+.B \-j, \-\-json
+Output as JSON
+.RE
+.SS Boards
+.TP
+.B boards list [\-f | \-\-format FORMAT] [\-\-fields FIELDS]
+List all your boards
+.RS
+Options:
+.TP
+.B \-f, \-\-format FORMAT
+Output format: table (default), json, csv, pdf, excel
+.TP
+.B \-\-fields FIELDS
+Comma-separated list of fields to include
+.RE
+.TP
+.B boards get BOARD_ID [\-j | \-\-json]
+Get details of a specific board
+.RS
+Options:
+.TP
+.B \-j, \-\-json
+Output as JSON
+.RE
+.SS Jobs
+.TP
+.B jobs list BOARD_ID [\-f | \-\-format FORMAT] [\-\-fields FIELDS]
+List jobs on a board
+.RS
+Options:
+.TP
+.B \-f, \-\-format FORMAT
+Output format: table (default), json, csv, pdf, excel
+.TP
+.B \-\-fields FIELDS
+Comma-separated list of fields to include
+.RE
+.TP
+.B jobs get BOARD_ID JOB_ID [\-j | \-\-json]
+Get details of a specific job
+.RS
+Options:
+.TP
+.B \-j, \-\-json
+Output as JSON
+.RE
+.SS Activities
+.TP
+.B activities list BOARD_ID [\-f | \-\-format FORMAT] [\-d DAYS | \-\-days DAYS] [\-w | \-\-week] [\-\-types TYPES] [\-\-fields FIELDS]
+List actions for a board
+.RS
+Options:
+.TP
+.B \-f, \-\-format FORMAT
+Output format: table (default), json, csv, pdf, excel
+.TP
+.B \-d, \-\-days DAYS
+Filter to last N days (e.g., 7 for past week)
+.TP
+.B \-w, \-\-week
+Filter to last 7 days (alias for \-\-days 7)
+.TP
+.B \-\-types TYPES
+Comma-separated action types (e.g., JOB_MOVED,NOTE_CREATED)
+.TP
+.B \-\-fields FIELDS
+Comma-separated list of fields to include
+.RE
+.TP
+.B activities week-csv BOARD_ID
+Export last 7 days of activity as CSV
+.SS Configuration
+.TP
+.B config capture-session
+Extract Clerk session from your browser automatically (macOS only, recommended)
+.TP
+.B config test-session
+Test the stored Clerk session by fetching a fresh token
+.TP
+.B config check-cdp
+Check Chrome DevTools Protocol connection for session capture
+.TP
+.B config set-token TOKEN [\-k | \-\-keychain]
+Save API token to config file or keychain
+.RS
+Options:
+.TP
+.B \-k, \-\-keychain
+Save to macOS Keychain instead of config file
+.RE
+.TP
+.B config show-token
+Show which authentication sources are configured
+.TP
+.B config clear-token [\-k | \-\-keychain] [\-c | \-\-config]
+Remove saved API token
+.RS
+Options:
+.TP
+.B \-k, \-\-keychain
+Clear from macOS Keychain only
+.TP
+.B \-c, \-\-config
+Clear from config file only
+.RE
+.TP
+.B config clear-session
+Remove stored Clerk session cookie
+.SH OUTPUT FORMATS
+.TP
+.B table
+Human-readable table format (default)
+.TP
+.B json
+Machine-readable JSON format
+.TP
+.B csv
+Comma-separated values for spreadsheet import
+.TP
+.B pdf
+PDF document with professional formatting
+.TP
+.B excel
+Excel spreadsheet (.xlsx) with formatting
+.SH FIELD SELECTION
+.P
+Use \fB\-\-fields\fR to select specific columns in output:
+.TP
+.B huntr boards list \-\-fields ID,Name
+.TP
+.B huntr jobs list <board-id> \-\-fields Title,URL
+.TP
+.B huntr activities list <board-id> \-\-fields Date,Type,Company
+.P
+Available fields depend on the command. Use \fB\-\-help\fR to see available fields.
+.SH AUTHENTICATION
+.P
+The CLI supports multiple authentication methods, with this priority order:
+.IP 1. 3
+CLI argument (\fB\-\-token\fR)
+.IP 2. 3
+Environment variable (\fBHUNTR_API_TOKEN\fR)
+.IP 3. 3
+Session-based (macOS only, auto-refreshing)
+.IP 4. 3
+Config file (~/.huntr/config.json)
+.IP 5. 3
+macOS Keychain (static token)
+.IP 6. 3
+Interactive prompt
+.P
+Recommended: Session-based auth on macOS, environment variable on other platforms.
+.SH EXAMPLES
+.TP
+.B huntr me
+Show your user profile
+.TP
+.B huntr boards list \-\-format json
+List all boards as JSON
+.TP
+.B huntr jobs list <board-id>
+List all jobs on a board (table format)
+.TP
+.B huntr jobs list <board-id> \-\-fields Title,URL \-\-format csv > jobs.csv
+Export job titles and URLs to CSV file
+.TP
+.B huntr activities list <board-id> \-\-days 7 \-\-format pdf > report.pdf
+Export last 7 days of activities as PDF
+.TP
+.B huntr activities list <board-id> \-\-types JOB_MOVED,NOTE_CREATED
+List only job movements and notes
+.TP
+.B huntr config capture-session
+Capture Clerk session from browser (macOS)
+.TP
+.B huntr config test-session
+Verify stored session works correctly
+.SH ENVIRONMENT VARIABLES
+.TP
+.B HUNTR_API_TOKEN
+API token for authentication (cross-platform)
+.SH FILES
+.TP
+.B ~/.huntr/config.json
+Configuration file with saved tokens and settings
+.TP
+.B ~/.husky/
+Git hooks directory (installed via npm)
+.SH KEYBOARD SHORTCUTS
+.P
+No special keyboard shortcuts. Standard terminal commands apply:
+.TP
+.B Ctrl-C
+Cancel current command
+.TP
+.B Ctrl-Z
+Suspend process (on Unix)
+.SH TROUBLESHOOTING
+.TP
+Session expired or invalid (HTTP 401)
+Your browser session has expired. Re-run:
+.B huntr config capture-session
+(macOS only). For other platforms, use \fB\-\-token\fR or environment variable.
+.TP
+No Clerk session stored
+Set up session-based auth with:
+.B huntr config capture-session
+(macOS only). On other platforms, use:
+.B huntr config set-token <token>
+.TP
+Could not connect to Chrome DevTools Protocol
+Ensure Chrome is running. The command will auto-launch Chrome if needed.
+.TP
+No token found
+Set up authentication using one of these methods:
+.TP
+1. Session: huntr config capture-session (macOS)
+.TP
+2. Token: huntr config set-token <token>
+.TP
+3. Environment: export HUNTR_API_TOKEN=<token>
+.TP
+4. Argument: huntr <command> \-\-token <token>
+.SH SEE ALSO
+.TP
+GitHub: https://github.com/mattmck/huntr-cli
+.TP
+Documentation: https://github.com/mattmck/huntr-cli/tree/main/docs
+.TP
+npm: https://www.npmjs.com/package/huntr-cli
+.TP
+Huntr: https://huntr.co
+.SH AUTHOR
+Matt McKnight <mcknight.matthew@gmail.com>
+.SH LICENSE
+ISC
+.SH HISTORY
+Version 1.0.0 (February 2026): Initial release with session-based auth, field selection, and PDF/Excel export.

@@ -1,0 +1,168 @@
+#compdef huntr
+
+_huntr() {
+  local -a commands
+  commands=(
+    'me:Show your user profile'
+    'boards:Manage your boards'
+    'jobs:Manage jobs on your boards'
+    'activities:View your board activity log'
+    'config:Manage CLI configuration'
+  )
+
+  local -a boards_commands
+  boards_commands=(
+    'list:List your boards'
+    'get:Get details for a specific board'
+  )
+
+  local -a jobs_commands
+  jobs_commands=(
+    'list:List jobs on a board'
+    'get:Get details for a specific job'
+  )
+
+  local -a activities_commands
+  activities_commands=(
+    'list:List activities for a board'
+    'week-csv:Export last 7 days as CSV'
+  )
+
+  local -a config_commands
+  config_commands=(
+    'capture-session:Extract Clerk session via Chrome DevTools'
+    'test-session:Verify stored session works'
+    'check-cdp:Check Chrome DevTools Protocol connection'
+    'set-token:Save API token to config'
+    'show-token:Show configured token sources'
+    'clear-token:Remove saved token'
+    'clear-session:Remove stored Clerk session'
+  )
+
+  local -a global_opts
+  global_opts=(
+    '(-t --token)'{-t,--token}'[API token]:token:'
+    '(-h --help)'{-h,--help}'[Display help]'
+    '(-V --version)'{-V,--version}'[Output version number]'
+  )
+
+  local -a format_opts
+  format_opts=(
+    '(-f --format)'{-f,--format}'[Output format]:format:(table json csv pdf excel)'
+  )
+
+  local -a field_opts
+  field_opts=(
+    '(--fields)--fields[Comma-separated list of fields to include]:fields:'
+  )
+
+  local -a list_opts
+  list_opts=(
+    $format_opts
+    $field_opts
+    '(-d --days)'{-d,--days}'[Filter to last N days]:days:'
+    '(-w --week)'{-w,--week}'[Filter to last 7 days]'
+    '(--types)--types[Filter by action types]:types:'
+  )
+
+  _arguments -C \
+    $global_opts \
+    '1: :->command' \
+    '*::arg:->args'
+
+  case $state in
+    command)
+      _describe 'huntr command' commands
+      ;;
+    args)
+      case $line[1] in
+        me)
+          _arguments $format_opts
+          ;;
+        boards)
+          _arguments -C \
+            '1: :->subcommand' \
+            '*::arg:->args'
+
+          case $state in
+            subcommand)
+              _describe 'boards subcommand' boards_commands
+              ;;
+            args)
+              case $line[1] in
+                list|get)
+                  _arguments $format_opts
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
+        jobs)
+          _arguments -C \
+            '1: :->subcommand' \
+            '*::arg:->args'
+
+          case $state in
+            subcommand)
+              _describe 'jobs subcommand' jobs_commands
+              ;;
+            args)
+              case $line[1] in
+                list|get)
+                  _arguments $format_opts
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
+        activities)
+          _arguments -C \
+            '1: :->subcommand' \
+            '*::arg:->args'
+
+          case $state in
+            subcommand)
+              _describe 'activities subcommand' activities_commands
+              ;;
+            args)
+              case $line[1] in
+                list)
+                  _arguments $list_opts
+                  ;;
+                week-csv)
+                  # No additional options
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
+        config)
+          _arguments -C \
+            '1: :->subcommand' \
+            '*::arg:->args'
+
+          case $state in
+            subcommand)
+              _describe 'config subcommand' config_commands
+              ;;
+            args)
+              case $line[1] in
+                capture-session|test-session|check-cdp|show-token|clear-session)
+                  # No additional arguments
+                  ;;
+                set-token)
+                  _arguments '1:token:'
+                  ;;
+                clear-token)
+                  _arguments '(--all)--all[Clear all token sources]'
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_huntr "$@"
