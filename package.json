@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "node build.mjs",
-"dev": "DOTENV_CONFIG_SILENT=true TSX_LOG_LEVEL=error tsx src/cli.ts",
+    "dev": "tsx src/cli.ts",
     "start": "node dist/cli.js",
     "lint": "eslint src --max-warnings 13",
     "lint:fix": "eslint src --fix",

@@ -116,7 +116,17 @@ Then use the CLI:
 huntr activities list <board-id>
 ```
 
-The CLI automatically loads `.env` without any special flags. **Note:** Keep `.env` out of version control (add to `.gitignore`).
+By default, the CLI does NOT auto-load `.env` to avoid noisy logs. To load it, prefix commands with `HUNTR_LOAD_ENV=true`.
+
+Examples:
+
+```bash
+HUNTR_LOAD_ENV=true huntr activities list <board-id>
+# or in dev:
+HUNTR_LOAD_ENV=true npm run dev -- boards list
+```
+
+**Note:** Keep `.env` out of version control (it's already in `.gitignore`).
 
 To get your token, log into Huntr and run in your browser DevTools console:
 
