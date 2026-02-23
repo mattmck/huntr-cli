@@ -1,5 +1,9 @@
 # Huntr CLI
 
+[![CI](https://github.com/mattmck/huntr-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/mattmck/huntr-cli/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/huntr-cli.svg)](https://www.npmjs.com/package/huntr-cli)
+[![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
+
 A command-line interface for managing your Huntr job search board. Track activities, search jobs, and manage your application pipeline from the terminal.
 
 ## Features
@@ -19,6 +23,13 @@ A command-line interface for managing your Huntr job search board. Track activit
 - macOS with Chrome/Chromium for session capture
 - A Huntr account (free at [huntr.co](https://huntr.co))
 
+### Install from npm (recommended)
+
+```bash
+npm install -g huntr-cli
+# Now use: huntr <command>
+```
+
 ### Install from source
 
 ```bash
@@ -26,7 +37,8 @@ git clone https://github.com/mattmck/huntr-cli.git
 cd huntr-cli
 npm install
 npm run build
-# Optional: npm link  (to use 'huntr' command globally)
+# Use: huntr <command>
+# Or: npm link  (to use 'huntr' command globally)
 ```
 
 ## Quick Start
@@ -36,7 +48,7 @@ npm run build
 The easiest way — no token copy-paste needed:
 
 ```bash
-node dist/cli.js config capture-session
+huntr config capture-session
 # Automatically extracts your Clerk session from your browser
 # Saves to keychain, tests the refresh
 ```
@@ -44,13 +56,13 @@ node dist/cli.js config capture-session
 Verify it works:
 
 ```bash
-node dist/cli.js config test-session
+huntr config test-session
 ```
 
 ### 2. List your activities
 
 ```bash
-node dist/cli.js activities list <your-board-id> --days 7 --format csv > activities.csv
+huntr activities list <your-board-id> --days 7 --format csv > activities.csv
 ```
 
 Replace `<your-board-id>` with your actual board ID (you can get it from huntr.co/home in your browser, or run `me` to find it).
@@ -72,19 +84,19 @@ Most convenient for regular use — logs in once via browser, tokens auto-refres
 
 ```bash
 # Extract Clerk session from your browser and save to Keychain
-node dist/cli.js config capture-session
+huntr config capture-session
 
 # Verify it works
-node dist/cli.js config test-session
+huntr config test-session
 
 # From now on, all commands auto-refresh tokens before use
-node dist/cli.js activities list <board-id>
+huntr activities list <board-id>
 ```
 
 If capture fails, check Chrome DevTools:
 
 ```bash
-node dist/cli.js config check-cdp
+huntr config check-cdp
 ```
 
 ### Cross-Platform: Environment Variable (All Platforms)
@@ -101,7 +113,7 @@ HUNTR_API_TOKEN=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 Then use the CLI:
 
 ```bash
-node dist/cli.js activities list <board-id>
+huntr activities list <board-id>
 ```
 
 The CLI automatically loads `.env` without any special flags. **Note:** Keep `.env` out of version control (add to `.gitignore`).
@@ -121,34 +133,34 @@ For one-off use or scripting, save a token to the config file:
 # In DevTools console on huntr.co:
 # await window.Clerk.session.getToken()  → copy result
 
-node dist/cli.js config set-token "<token>"
+huntr config set-token "<token>"
 ```
 
 Check your configured sources:
 
 ```bash
-node dist/cli.js config show-token
+huntr config show-token
 ```
 
 Clear tokens:
 
 ```bash
-node dist/cli.js config clear-token --all
-node dist/cli.js config clear-session  # Clear saved browser session
+huntr config clear-token --all
+huntr config clear-session  # Clear saved browser session
 ```
 
 ### Method: Command-Line or Shell Environment
 
 ```bash
 # Via CLI argument
-node dist/cli.js activities list <board-id> --token <your-jwt>
+huntr activities list <board-id> --token <your-jwt>
 
 # Via shell environment variable (one-time)
-HUNTR_API_TOKEN=<your-jwt> node dist/cli.js activities list <board-id>
+HUNTR_API_TOKEN=<your-jwt> huntr activities list <board-id>
 
 # Via persistent shell environment
 export HUNTR_API_TOKEN=<your-jwt>
-node dist/cli.js activities list <board-id>
+huntr activities list <board-id>
 ```
 
 ## Usage
@@ -158,8 +170,8 @@ node dist/cli.js activities list <board-id>
 Show your Huntr user info:
 
 ```bash
-node dist/cli.js me
-node dist/cli.js me --json
+huntr me
+huntr me --json
 ```
 
 ### Boards
@@ -167,15 +179,15 @@ node dist/cli.js me --json
 List your boards:
 
 ```bash
-node dist/cli.js boards list
-node dist/cli.js boards list --format json
-node dist/cli.js boards list --format csv
+huntr boards list
+huntr boards list --format json
+huntr boards list --format csv
 ```
 
 Get details for a specific board:
 
 ```bash
-node dist/cli.js boards get <board-id>
+huntr boards get <board-id>
 ```
 
 ### Jobs
@@ -183,14 +195,14 @@ node dist/cli.js boards get <board-id>
 List all jobs on a board:
 
 ```bash
-node dist/cli.js jobs list <board-id>
-node dist/cli.js jobs list <board-id> --format csv
+huntr jobs list <board-id>
+huntr jobs list <board-id> --format csv
 ```
 
 Get details for a specific job:
 
 ```bash
-node dist/cli.js jobs get <board-id> <job-id>
+huntr jobs get <board-id> <job-id>
 ```
 
 ### Activities
@@ -199,25 +211,25 @@ List activities (job tracking actions you've taken):
 
 ```bash
 # All activities
-node dist/cli.js activities list <board-id>
+huntr activities list <board-id>
 
 # Last 7 days
-node dist/cli.js activities list <board-id> --days 7
+huntr activities list <board-id> --days 7
 
 # Last 7 days, JSON output
-node dist/cli.js activities list <board-id> --days 7 --format json
+huntr activities list <board-id> --days 7 --format json
 
 # Last 7 days, CSV output (for spreadsheet import)
-node dist/cli.js activities list <board-id> --days 7 --format csv
+huntr activities list <board-id> --days 7 --format csv
 
 # Filter by action types
-node dist/cli.js activities list <board-id> --types JOB_MOVED,NOTE_CREATED
+huntr activities list <board-id> --types JOB_MOVED,NOTE_CREATED
 ```
 
 Export last 7 days as CSV:
 
 ```bash
-node dist/cli.js activities week-csv <board-id> > activities.csv
+huntr activities week-csv <board-id> > activities.csv
 ```
 
 ### Global Options
@@ -243,7 +255,7 @@ For `activities list` only:
 ### Export your last week of activity to a spreadsheet
 
 ```bash
-node dist/cli.js activities list 68bf9e33f871e5004a5eb58e --days 7 --format csv > week.csv
+huntr activities list 68bf9e33f871e5004a5eb58e --days 7 --format csv > week.csv
 ```
 
 Then open `week.csv` in Excel or Google Sheets.
@@ -251,13 +263,13 @@ Then open `week.csv` in Excel or Google Sheets.
 ### Get JSON of your jobs for scripting
 
 ```bash
-node dist/cli.js jobs list <board-id> --json | jq '.[] | {ID, Title}'
+huntr jobs list <board-id> --json | jq '.[] | {ID, Title}'
 ```
 
 ### Check which auth sources are configured
 
 ```bash
-node dist/cli.js config show-token
+huntr config show-token
 ```
 
 Output:
@@ -296,7 +308,7 @@ npm test
 1. Go to [huntr.co/home](https://huntr.co/home)
 2. Open DevTools (F12)
 3. Run: `window.location.href` and note the URL
-4. Or run: `node dist/cli.js me --json` to see your boards
+4. Or run: `huntr me --json` to see your boards
 
 ## Troubleshooting
 
@@ -305,7 +317,7 @@ npm test
 Your browser session has expired or been revoked. Re-run (macOS only):
 
 ```bash
-node dist/cli.js config capture-session
+huntr config capture-session
 ```
 
 **Non-Mac users:** Use the `.env` file method instead (see "Cross-Platform: Environment Variable" above).
@@ -316,7 +328,7 @@ You haven't set up session-based auth yet. This is macOS-only. Options:
 
 **On macOS:**
 ```bash
-node dist/cli.js config capture-session
+huntr config capture-session
 ```
 
 **On other platforms:**
@@ -334,7 +346,7 @@ Session capture (macOS only) needs Chrome running with remote debugging. Try:
 killall "Google Chrome"
 
 # Then re-run
-node dist/cli.js config capture-session
+huntr config capture-session
 # (It will auto-launch Chrome)
 ```
 
@@ -342,7 +354,7 @@ Or manually launch Chrome with:
 
 ```bash
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 https://huntr.co/home
-# Then run: node dist/cli.js config capture-session
+# Then run: huntr config capture-session
 ```
 
 ### "No token found" on non-Mac platforms
@@ -353,19 +365,19 @@ Session-based auth only works on macOS. Use one of these methods instead:
 ```bash
 # Create .env in your huntr-cli directory
 echo "HUNTR_API_TOKEN=<your-token>" > .env
-node dist/cli.js activities list <board-id>
+huntr activities list <board-id>
 ```
 
 **Option 2: Save to config file (all platforms)**
 ```bash
-node dist/cli.js config set-token "<your-token>"
-node dist/cli.js activities list <board-id>
+huntr config set-token "<your-token>"
+huntr activities list <board-id>
 ```
 
 **Option 3: Shell environment variable**
 ```bash
 export HUNTR_API_TOKEN=<your-token>
-node dist/cli.js activities list <board-id>
+huntr activities list <board-id>
 ```
 
 ## License
