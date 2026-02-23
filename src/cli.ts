@@ -276,7 +276,24 @@ activities
   .option('-j, --json', 'Output as JSON (legacy, same as --format json)')
   .action(async (boardId, options, command) => {
     try {
-      const AVAILABLE_FIELDS = ['Date', 'Type', 'Company', 'Job', 'Status'];
+      const AVAILABLE_FIELDS = [
+        'ID',
+        'Date',
+        'Created',
+        'Updated',
+        'Type',
+        'Company',
+        'CompanyId',
+        'Job',
+        'JobId',
+        'FromStatus',
+        'FromStatusId',
+        'ToStatus',
+        'ToStatusId',
+        'Note',
+        'NoteId',
+        'BoardId',
+      ];
       const listOpts = parseListOptions(options);
       const fields = validateFields(AVAILABLE_FIELDS, listOpts.fields);
 
@@ -298,11 +315,22 @@ activities
       }
 
       const rows = actions.map(a => ({
-        Date:    new Date(a.date || a.createdAt).toISOString().substring(0, 16),
-        Type:    a.actionType,
+        ID: a.id,
+        Date: new Date(a.date || a.createdAt).toISOString().substring(0, 16),
+        Created: new Date(a.createdAt).toISOString().substring(0, 16),
+        Updated: a.updatedAt ? new Date(a.updatedAt).toISOString().substring(0, 16) : '',
+        Type: a.actionType,
         Company: a.data?.company?.name ?? '',
-        Job:     (a.data?.job?.title ?? '').substring(0, 40),
-        Status:  a.data?.toList?.name ?? '',
+        CompanyId: a.data?._company ?? '',
+        Job: (a.data?.job?.title ?? '').substring(0, 40),
+        JobId: a.data?._job ?? '',
+        FromStatus: a.data?.fromList?.name ?? '',
+        FromStatusId: a.data?._fromList ?? '',
+        ToStatus: a.data?.toList?.name ?? '',
+        ToStatusId: a.data?._toList ?? '',
+        Note: a.data?.note?.text ?? '',
+        NoteId: a.data?.note?.id ?? '',
+        BoardId: a.data?._board ?? '',
       }));
 
       if (listOpts.format === 'json') {
@@ -325,6 +353,32 @@ activities
   });
 
 activities
+  .command('fields')
+  .description('Show available fields for activities list command')
+  .action(() => {
+    const AVAILABLE_FIELDS = [
+      'ID',
+      'Date',
+      'Created',
+      'Updated',
+      'Type',
+      'Company',
+      'CompanyId',
+      'Job',
+      'JobId',
+      'FromStatus',
+      'FromStatusId',
+      'ToStatus',
+      'ToStatusId',
+      'Note',
+      'NoteId',
+      'BoardId',
+    ];
+    const rows = AVAILABLE_FIELDS.map(f => ({ Field: f }));
+    console.log(formatTableWithFields(rows, ['Field']));
+  });
+
+activities
   .command('week-csv')
   .description('Export last 7 days of activity as CSV')
   .argument('<board-id>', 'Board ID')
@@ -332,7 +386,7 @@ activities
     try {
       const api = await getApi(command.parent?.parent?.opts().token);
       const rows = await api.actions.weekSummary(boardId);
-      const lines = ['Date,Action,Company,Job Title,Status,Job URL'];
+      const lines = ['Date,Action,Company,Job Title,Status,Job URL,Address'];
       for (const r of rows) {
         lines.push([
           r.date,
@@ -341,6 +395,7 @@ activities
           `"${r.jobTitle.replace(/"/g, '""')}"`,
           r.status,
           r.url,
+          `"${r.address.replace(/"/g, '""')}"`,
         ].join(','));
       }
       console.log(lines.join('\n'));

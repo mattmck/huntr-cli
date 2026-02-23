@@ -4,3 +4,5 @@ dist/
 *.log
 .DS_Store
 out
+resumes_response.json
+resume_reviews.json
