@@ -14,6 +14,7 @@ A command-line interface for managing your Huntr job search board. Track activit
 - 🎯 **Your board only** — Personal user API (not organization-scoped)
 - 🔒 **Secure storage** — Session data stored in macOS Keychain
 - ⚡ **Fast** — No copy-paste token juggling, session persists for weeks
+- 🐚 **Shell completions** — Tab completion for bash, zsh, and fish
 
 ## Installation
 
@@ -241,6 +242,28 @@ Export last 7 days as CSV:
 ```bash
 huntr activities week-csv <board-id> > activities.csv
 ```
+
+### Shell Completions
+
+Generate and install tab completion for your shell:
+
+```bash
+# bash — add to ~/.bash_completion or source from ~/.bashrc
+huntr completions bash >> ~/.bash_completion
+source ~/.bash_completion
+
+# zsh — save to a completions directory in your fpath
+mkdir -p ~/.zsh/completions
+huntr completions zsh > ~/.zsh/completions/_huntr
+# Add to ~/.zshrc if not already present:
+#   fpath=(~/.zsh/completions $fpath)
+#   autoload -Uz compinit && compinit
+
+# fish
+huntr completions fish > ~/.config/fish/completions/huntr.fish
+```
+
+Once installed, tab-completing `huntr <tab>` will show all subcommands, and `huntr config <tab>`, `huntr boards <tab>`, etc. will show their respective subcommands.
 
 ### Global Options
 
