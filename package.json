@@ -1,6 +1,6 @@
 {
   "name": "huntr-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "description": "CLI tool for managing your Huntr job search board. Track activities, search jobs, and manage your application pipeline from the terminal.",
   "main": "dist/cli.js",
