@@ -1,22 +1,147 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
+import { Command, InvalidArgumentError } from 'commander';
 import { HuntrPersonalApi } from './api/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
 import { captureSession, checkCdpSession } from './commands/capture-session';
-import {
-  parseListOptions,
-  validateFields,
-  formatTableWithFields,
-  formatCsvWithFields,
-  formatJsonWithFields,
-  formatPdf,
-  formatExcel,
-} from './lib/list-options';
 
 const program = new Command();
 const tokenManager = new TokenManager();
+
+type OutputFormat = 'json' | 'table' | 'csv';
+
+type SharedListOptions = {
+  format?: OutputFormat;
+  json?: boolean;
+  days?: number;
+  since?: Date;
+  until?: Date;
+  limit?: number;
+  week?: boolean;
+};
+
+function parsePositiveInt(value: string, flagName: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed <= 0) {
+    throw new InvalidArgumentError(`${flagName} must be a positive integer.`);
+  }
+  return parsed;
+}
+
+function parseDaysOption(value: string): number {
+  return parsePositiveInt(value, '--days');
+}
+
+function parseLimitOption(value: string): number {
+  return parsePositiveInt(value, '--limit');
+}
+
+function parseFormatOption(value: string): OutputFormat {
+  const normalized = value.toLowerCase();
+  if (normalized === 'json' || normalized === 'table' || normalized === 'csv') {
+    return normalized;
+  }
+  throw new InvalidArgumentError('--format must be one of: json, table, csv.');
+}
+
+function parseDateOption(value: string): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new InvalidArgumentError('Date must be in YYYY-MM-DD format.');
+  }
+
+  const [yearStr, monthStr, dayStr] = value.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    throw new InvalidArgumentError(`Invalid calendar date: ${value}`);
+  }
+
+  return date;
+}
+
+function resolveOutputFormat(options: SharedListOptions): OutputFormat {
+  if (options.json) {
+    if (options.format && options.format !== 'json') {
+      throw new Error(`--json cannot be combined with --format ${options.format}.`);
+    }
+    return 'json';
+  }
+  return options.format ?? 'json';
+}
+
+function resolveDateRange(options: SharedListOptions): { since?: Date; until?: Date } {
+  let days = options.days;
+  if (options.week) {
+    if (options.days || options.since || options.until) {
+      throw new Error('--week cannot be combined with --days, --since, or --until.');
+    }
+    days = 7;
+  }
+
+  if (days && (options.since || options.until)) {
+    throw new Error('--days cannot be combined with --since or --until.');
+  }
+
+  const since = days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000) : options.since;
+  const until = options.until
+    ? new Date(Date.UTC(
+      options.until.getUTCFullYear(),
+      options.until.getUTCMonth(),
+      options.until.getUTCDate(),
+      23, 59, 59, 999,
+    ))
+    : undefined;
+
+  if (since && until && since.getTime() > until.getTime()) {
+    throw new Error('--since must be earlier than or equal to --until.');
+  }
+
+  return { since, until };
+}
+
+function filterByDateRange<T>(
+  items: T[],
+  getDate: (item: T) => string | undefined,
+  range: { since?: Date; until?: Date },
+): T[] {
+  return items.filter(item => {
+    const raw = getDate(item);
+    if (!raw) return true;
+
+    const timestamp = new Date(raw).getTime();
+    if (Number.isNaN(timestamp)) return false;
+    if (range.since && timestamp < range.since.getTime()) return false;
+    if (range.until && timestamp > range.until.getTime()) return false;
+    return true;
+  });
+}
+
+function applyLimit<T>(items: T[], limit?: number): T[] {
+  if (!limit) return items;
+  return items.slice(0, limit);
+}
+
+function csvCell(value: unknown): string {
+  const str = value == null ? '' : String(value);
+  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+
+function printCsv(headers: string[], rows: unknown[][]): void {
+  const lines = [headers.join(',')];
+  for (const row of rows) {
+    lines.push(row.map(csvCell).join(','));
+  }
+  console.log(lines.join('\n'));
+}
 
 async function getApi(token?: string): Promise<HuntrPersonalApi> {
   const provider = await tokenManager.getTokenProvider({ token });
@@ -26,7 +151,7 @@ async function getApi(token?: string): Promise<HuntrPersonalApi> {
 program
   .name('huntr')
   .description('CLI tool for Huntr')
-  .version('1.0.0')
+  .version('1.1.0')
   .option('-t, --token <token>', 'API token (overrides all other sources)');
 
 // ── me ───────────────────────────────────────────────────────────────────────
@@ -59,42 +184,38 @@ const boards = program.command('boards').description('Manage your boards');
 boards
   .command('list')
   .description('List all your boards')
-  .option('-f, --format <format>', 'Output format: table (default), json, csv, pdf, excel')
-  .option('-j, --json', 'Output as JSON (legacy, same as --format json)')
-  .option('--fields <fields>', 'Comma-separated list of fields to include')
+  .option('-f, --format <format>', 'Output format: json | table | csv', parseFormatOption, 'json')
+  .option('-j, --json', 'Output as JSON (alias for --format json)')
+  .option('-d, --days <n>', 'Show only boards created in last N days', parseDaysOption)
+  .option('--since <date>', 'Show boards created since YYYY-MM-DD', parseDateOption)
+  .option('--until <date>', 'Show boards created until YYYY-MM-DD (inclusive)', parseDateOption)
+  .option('--limit <n>', 'Maximum rows to output', parseLimitOption)
   .action(async (options, command) => {
     try {
-      const AVAILABLE_FIELDS = ['ID', 'Name', 'Created'];
-      const listOpts = parseListOptions(options);
-      const fields = validateFields(AVAILABLE_FIELDS, listOpts.fields);
+      const format = resolveOutputFormat(options);
+      const range = resolveDateRange(options);
 
       const api = await getApi(command.parent?.parent?.opts().token);
       const response = await api.boards.list();
       const boardsList = Array.isArray(response) ? response : (response as any).data ?? [];
+      const sorted = [...boardsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const filtered = applyLimit(filterByDateRange(sorted, b => b.createdAt, range), options.limit);
 
-      if (boardsList.length === 0) {
+      if (format === 'json') {
+        console.log(JSON.stringify(filtered, null, 2));
+      } else if (filtered.length === 0) {
         console.log('No boards found.');
-        return;
-      }
-
-      const rows = boardsList.map((b: any) => ({
-        ID: b.id,
-        Name: b.name ?? 'N/A',
-        Created: new Date(b.createdAt).toLocaleDateString(),
-      }));
-
-      if (listOpts.format === 'json') {
-        console.log(formatJsonWithFields(rows, fields));
-      } else if (listOpts.format === 'csv') {
-        console.log(formatCsvWithFields(rows, fields));
-      } else if (listOpts.format === 'pdf') {
-        const buffer = formatPdf(rows, fields, 'Boards List');
-        process.stdout.write(buffer);
-      } else if (listOpts.format === 'excel') {
-        const buffer = await formatExcel(rows, fields, 'Boards');
-        process.stdout.write(buffer);
+      } else if (format === 'csv') {
+        printCsv(
+          ['id', 'name', 'created_at'],
+          filtered.map((b: any) => [b.id, b.name ?? '', b.createdAt ?? '']),
+        );
       } else {
-        console.log(formatTableWithFields(rows, fields));
+        console.table(filtered.map((b: any) => ({
+          ID: b.id,
+          Name: b.name ?? 'N/A',
+          Created: new Date(b.createdAt).toLocaleDateString(),
+        })));
       }
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
@@ -132,99 +253,42 @@ boards
 
 const jobs = program.command('jobs').description('Manage jobs on your boards');
 
-const JOB_AVAILABLE_FIELDS: ReadonlyArray<string> = [
-  'ID', 'Title', 'URL', 'RootDomain', 'Description',
-  'CompanyId', 'ListId', 'BoardId',
-  'SalaryMin', 'SalaryMax', 'SalaryCurrency',
-  'LocationAddress', 'LocationName', 'LocationUrl', 'LocationLat', 'LocationLng',
-  'Created', 'Updated', 'LastMoved',
-];
-
-jobs
-  .command('fields')
-  .description('List available fields for jobs list')
-  .option('-j, --json', 'Output as JSON')
-  .action(async (options) => {
-    try {
-      const rows = JOB_AVAILABLE_FIELDS.map((f: string) => ({ Field: f }));
-      if (options.json) {
-        console.log(JSON.stringify(rows.map(r => r.Field), null, 2));
-      } else {
-        console.log(formatTableWithFields(rows, ['Field']));
-      }
-    } catch (error) {
-      console.error('Error:', error instanceof Error ? error.message : error);
-      process.exit(1);
-    }
-  });
-
 jobs
   .command('list')
   .description('List jobs on a board')
   .argument('<board-id>', 'Board ID')
-  .option('-f, --format <format>', 'Output format: table (default), json, csv, pdf, excel')
-  .option('-j, --json', 'Output as JSON (legacy, same as --format json)')
-  .option('--fields <fields>', 'Comma-separated list of fields to include (use "help" or "all")')
+  .option('-f, --format <format>', 'Output format: json | table | csv', parseFormatOption, 'json')
+  .option('-j, --json', 'Output as JSON (alias for --format json)')
+  .option('-d, --days <n>', 'Show only jobs created in last N days', parseDaysOption)
+  .option('--since <date>', 'Show jobs created since YYYY-MM-DD', parseDateOption)
+  .option('--until <date>', 'Show jobs created until YYYY-MM-DD (inclusive)', parseDateOption)
+  .option('--limit <n>', 'Maximum rows to output', parseLimitOption)
   .action(async (boardId, options, command) => {
     try {
-      const AVAILABLE_FIELDS = [...JOB_AVAILABLE_FIELDS];
-      const listOpts = parseListOptions(options);
-
-      // If user asked for field help, print and exit success
-      const wantsHelp = (listOpts.fields ?? []).some(f => /^(help|\?)$/i.test(f));
-      if (wantsHelp) {
-        const rows = AVAILABLE_FIELDS.map(f => ({ Field: f }));
-        console.log(formatTableWithFields(rows, ['Field']));
-        return;
-      }
-
-      const requested = listOpts.fields;
-      const fields = (requested && requested.length === 1 && /^(all)$/i.test(requested[0]))
-        ? AVAILABLE_FIELDS.slice()
-        : validateFields(AVAILABLE_FIELDS, requested);
+      const format = resolveOutputFormat(options);
+      const range = resolveDateRange(options);
 
       const api = await getApi(command.parent?.parent?.opts().token);
       const jobsList = await api.jobs.listByBoardFlat(boardId);
+      const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
 
-      if (jobsList.length === 0) {
+      if (format === 'json') {
+        console.log(JSON.stringify(filtered, null, 2));
+      } else if (filtered.length === 0) {
         console.log('No jobs found.');
-        return;
-      }
-
-      const rows = jobsList.map(j => ({
-        ID: j.id,
-        Title: j.title ?? '',
-        URL: j.url ?? '',
-        RootDomain: j.rootDomain ?? '',
-        Description: j.htmlDescription ?? '',
-        CompanyId: j._company ?? '',
-        ListId: j._list ?? '',
-        BoardId: j._board ?? '',
-        SalaryMin: j.salary?.min ?? '',
-        SalaryMax: j.salary?.max ?? '',
-        SalaryCurrency: j.salary?.currency ?? '',
-        LocationAddress: j.location?.address ?? '',
-        LocationName: j.location?.name ?? '',
-        LocationUrl: j.location?.url ?? '',
-        LocationLat: j.location?.lat ?? '',
-        LocationLng: j.location?.lng ?? '',
-        Created: new Date(j.createdAt).toLocaleDateString(),
-        Updated: j.updatedAt ? new Date(j.updatedAt).toLocaleDateString() : '',
-        LastMoved: j.lastMovedAt ? new Date(j.lastMovedAt).toLocaleDateString() : '',
-      }));
-
-      if (listOpts.format === 'json') {
-        console.log(formatJsonWithFields(rows, fields));
-      } else if (listOpts.format === 'csv') {
-        console.log(formatCsvWithFields(rows, fields));
-      } else if (listOpts.format === 'pdf') {
-        const buffer = formatPdf(rows, fields, 'Jobs List');
-        process.stdout.write(buffer);
-      } else if (listOpts.format === 'excel') {
-        const buffer = await formatExcel(rows, fields, 'Jobs');
-        process.stdout.write(buffer);
+      } else if (format === 'csv') {
+        printCsv(
+          ['id', 'title', 'url', 'created_at'],
+          filtered.map(j => [j.id, j.title, j.url ?? '', j.createdAt]),
+        );
       } else {
-        console.log(formatTableWithFields(rows, fields));
+        console.table(filtered.map(j => ({
+          ID: j.id,
+          Title: j.title,
+          URL: j.url ?? 'N/A',
+          Created: new Date(j.createdAt).toLocaleDateString(),
+        })));
       }
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
@@ -268,114 +332,58 @@ activities
   .command('list')
   .description('List actions for a board')
   .argument('<board-id>', 'Board ID')
-  .option('-f, --format <format>', 'Output format: table (default), json, csv, pdf, excel')
-  .option('-d, --days <days>', 'Filter to last N days (e.g. 7 for past week)')
-  .option('-w, --week', 'Filter to last 7 days (legacy, same as --days 7)')
+  .option('-f, --format <format>', 'Output format: json | table | csv', parseFormatOption, 'json')
+  .option('-j, --json', 'Output as JSON (alias for --format json)')
+  .option('-d, --days <n>', 'Show only actions from last N days', parseDaysOption)
+  .option('--since <date>', 'Show actions since YYYY-MM-DD', parseDateOption)
+  .option('--until <date>', 'Show actions until YYYY-MM-DD (inclusive)', parseDateOption)
+  .option('--limit <n>', 'Maximum rows to output', parseLimitOption)
+  .option('-w, --week', 'Alias for --days 7')
   .option('--types <types>', 'Comma-separated action types (e.g. JOB_MOVED,NOTE_CREATED)')
-  .option('--fields <fields>', 'Comma-separated list of fields to include')
-  .option('-j, --json', 'Output as JSON (legacy, same as --format json)')
   .action(async (boardId, options, command) => {
     try {
-      const AVAILABLE_FIELDS = [
-        'ID',
-        'Date',
-        'Created',
-        'Updated',
-        'Type',
-        'Company',
-        'CompanyId',
-        'Job',
-        'JobId',
-        'FromStatus',
-        'FromStatusId',
-        'ToStatus',
-        'ToStatusId',
-        'Note',
-        'NoteId',
-        'BoardId',
-      ];
-      const listOpts = parseListOptions(options);
-      const fields = validateFields(AVAILABLE_FIELDS, listOpts.fields);
+      const format = resolveOutputFormat(options);
+      const range = resolveDateRange(options);
 
       const api = await getApi(command.parent?.parent?.opts().token);
+      const opts: { since?: Date; types?: string[] } = {};
+      if (range.since) opts.since = range.since;
+      if (options.types) opts.types = options.types.split(',').map((t: string) => t.trim()).filter(Boolean);
 
-      const apiOpts: { since?: Date; types?: string[] } = {};
-      if (listOpts.days) {
-        apiOpts.since = new Date(Date.now() - listOpts.days * 24 * 60 * 60 * 1000);
-      }
-      if (listOpts.types) {
-        apiOpts.types = listOpts.types;
-      }
+      const actionsRaw = await api.actions.listByBoardFlat(boardId, opts);
+      const actions = applyLimit(
+        filterByDateRange(actionsRaw, a => a.date || a.createdAt, range),
+        options.limit,
+      );
 
-      const actions = await api.actions.listByBoardFlat(boardId, apiOpts);
-
-      if (actions.length === 0) {
+      if (format === 'json') {
+        console.log(JSON.stringify(actions, null, 2));
+      } else if (actions.length === 0) {
         console.log('No activities found.');
-        return;
-      }
-
-      const rows = actions.map(a => ({
-        ID: a.id,
-        Date: new Date(a.date || a.createdAt).toISOString().substring(0, 16),
-        Created: new Date(a.createdAt).toISOString().substring(0, 16),
-        Updated: a.updatedAt ? new Date(a.updatedAt).toISOString().substring(0, 16) : '',
-        Type: a.actionType,
-        Company: a.data?.company?.name ?? '',
-        CompanyId: a.data?._company ?? '',
-        Job: (a.data?.job?.title ?? '').substring(0, 40),
-        JobId: a.data?._job ?? '',
-        FromStatus: a.data?.fromList?.name ?? '',
-        FromStatusId: a.data?._fromList ?? '',
-        ToStatus: a.data?.toList?.name ?? '',
-        ToStatusId: a.data?._toList ?? '',
-        Note: a.data?.note?.text ?? '',
-        NoteId: a.data?.note?.id ?? '',
-        BoardId: a.data?._board ?? '',
-      }));
-
-      if (listOpts.format === 'json') {
-        console.log(formatJsonWithFields(rows, fields));
-      } else if (listOpts.format === 'csv') {
-        console.log(formatCsvWithFields(rows, fields));
-      } else if (listOpts.format === 'pdf') {
-        const buffer = formatPdf(rows, fields, 'Activities List');
-        process.stdout.write(buffer);
-      } else if (listOpts.format === 'excel') {
-        const buffer = await formatExcel(rows, fields, 'Activities');
-        process.stdout.write(buffer);
+      } else if (format === 'csv') {
+        printCsv(
+          ['date', 'type', 'company', 'job', 'status'],
+          actions.map(a => [
+            new Date(a.date || a.createdAt).toISOString(),
+            a.actionType,
+            a.data?.company?.name ?? '',
+            a.data?.job?.title ?? '',
+            a.data?.toList?.name ?? '',
+          ]),
+        );
       } else {
-        console.log(formatTableWithFields(rows, fields));
+        console.table(actions.map(a => ({
+          Date: new Date(a.date || a.createdAt).toISOString().substring(0, 16),
+          Type: a.actionType,
+          Company: a.data?.company?.name ?? '',
+          Job: (a.data?.job?.title ?? '').substring(0, 40),
+          Status: a.data?.toList?.name ?? '',
+        })));
       }
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
       process.exit(1);
     }
-  });
-
-activities
-  .command('fields')
-  .description('Show available fields for activities list command')
-  .action(() => {
-    const AVAILABLE_FIELDS = [
-      'ID',
-      'Date',
-      'Created',
-      'Updated',
-      'Type',
-      'Company',
-      'CompanyId',
-      'Job',
-      'JobId',
-      'FromStatus',
-      'FromStatusId',
-      'ToStatus',
-      'ToStatusId',
-      'Note',
-      'NoteId',
-      'BoardId',
-    ];
-    const rows = AVAILABLE_FIELDS.map(f => ({ Field: f }));
-    console.log(formatTableWithFields(rows, ['Field']));
   });
 
 activities
@@ -386,7 +394,7 @@ activities
     try {
       const api = await getApi(command.parent?.parent?.opts().token);
       const rows = await api.actions.weekSummary(boardId);
-      const lines = ['Date,Action,Company,Job Title,Status,Job URL,Address'];
+      const lines = ['Date,Action,Company,Job Title,Status,Job URL'];
       for (const r of rows) {
         lines.push([
           r.date,
@@ -395,7 +403,6 @@ activities
           `"${r.jobTitle.replace(/"/g, '""')}"`,
           r.status,
           r.url,
-          `"${r.address.replace(/"/g, '""')}"`,
         ].join(','));
       }
       console.log(lines.join('\n'));
@@ -589,6 +596,176 @@ config
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
       process.exit(1);
+    }
+  });
+
+// ── completions ──────────────────────────────────────────────────────────────
+
+program
+  .command('completions')
+  .description('Generate shell completion script')
+  .argument('<shell>', 'Shell to generate completions for: bash | zsh | fish')
+  .addHelpText('after', `
+Examples:
+  # bash
+  huntr completions bash >> ~/.bash_completion
+  source ~/.bash_completion
+
+  # zsh (oh-my-zsh or fpath)
+  huntr completions zsh > "$HOME/.zsh/completions/_huntr"
+  # then add $HOME/.zsh/completions to your fpath in ~/.zshrc
+
+  # fish
+  huntr completions fish > ~/.config/fish/completions/huntr.fish
+  `)
+  .action((shell: string) => {
+    switch (shell) {
+      case 'bash':
+        /* eslint-disable no-useless-escape */
+        console.log(`# huntr bash completion
+# Add to ~/.bash_completion or ~/.bashrc:
+#   source <(huntr completions bash)
+
+_huntr_completions() {
+  local cur prev words cword
+  _init_completion || return
+
+  local top_commands="me boards jobs activities config completions"
+  local boards_commands="list get"
+  local jobs_commands="list get"
+  local activities_commands="list week-csv"
+  local config_commands="set-token capture-session check-cdp set-session test-session show-token clear-token clear-session"
+
+  case "\${words[1]}" in
+    boards)
+      COMPREPLY=( \$(compgen -W "\${boards_commands}" -- "\${cur}") )
+      return ;;
+    jobs)
+      COMPREPLY=( \$(compgen -W "\${jobs_commands}" -- "\${cur}") )
+      return ;;
+    activities)
+      COMPREPLY=( \$(compgen -W "\${activities_commands}" -- "\${cur}") )
+      return ;;
+    config)
+      COMPREPLY=( \$(compgen -W "\${config_commands}" -- "\${cur}") )
+      return ;;
+    completions)
+      COMPREPLY=( \$(compgen -W "bash zsh fish" -- "\${cur}") )
+      return ;;
+  esac
+
+  COMPREPLY=( \$(compgen -W "\${top_commands}" -- "\${cur}") )
+}
+
+complete -F _huntr_completions huntr
+`);
+        /* eslint-enable no-useless-escape */
+        break;
+
+      case 'zsh':
+        /* eslint-disable no-useless-escape */
+        console.log(`#compdef huntr
+# huntr zsh completion
+# Save to a directory in your fpath, e.g. ~/.zsh/completions/_huntr
+
+_huntr() {
+  local -a top_commands boards_commands jobs_commands activities_commands config_commands
+  top_commands=(
+    'me:Show your user profile'
+    'boards:Manage your boards'
+    'jobs:Manage jobs on your boards'
+    'activities:View your board activity log'
+    'config:Manage CLI configuration'
+    'completions:Generate shell completion script'
+  )
+  boards_commands=('list:List all your boards' 'get:Get details of a specific board')
+  jobs_commands=('list:List jobs on a board' 'get:Get details of a specific job')
+  activities_commands=('list:List actions for a board' 'week-csv:Export last 7 days of activity as CSV')
+  config_commands=(
+    'set-token:Save API token'
+    'capture-session:Capture Clerk session from browser'
+    'check-cdp:Check Chrome DevTools connectivity'
+    'set-session:Save Clerk session cookie'
+    'test-session:Test stored Clerk session'
+    'show-token:Show configured auth sources'
+    'clear-token:Remove saved API token'
+    'clear-session:Remove saved Clerk session'
+  )
+
+  local state
+  _arguments -C \\
+    '(-t --token)'{-t,--token}'[API token]:token:' \\
+    '1: :->command' \\
+    '*: :->args' && return 0
+
+  case \$state in
+    command) _describe 'command' top_commands ;;
+    args)
+      case \$words[2] in
+        boards)      _describe 'boards command' boards_commands ;;
+        jobs)        _describe 'jobs command' jobs_commands ;;
+        activities)  _describe 'activities command' activities_commands ;;
+        config)      _describe 'config command' config_commands ;;
+        completions) _values 'shell' bash zsh fish ;;
+      esac ;;
+  esac
+}
+
+_huntr "\$@"
+`);
+        /* eslint-enable no-useless-escape */
+        break;
+
+      case 'fish':
+        console.log(`# huntr fish completion
+# Save to ~/.config/fish/completions/huntr.fish
+
+set -l top_commands me boards jobs activities config completions
+
+# Disable file completions globally
+complete -c huntr -f
+
+# Top-level commands
+complete -c huntr -n "__fish_use_subcommand" -a me          -d "Show your user profile"
+complete -c huntr -n "__fish_use_subcommand" -a boards      -d "Manage your boards"
+complete -c huntr -n "__fish_use_subcommand" -a jobs        -d "Manage jobs on your boards"
+complete -c huntr -n "__fish_use_subcommand" -a activities  -d "View your board activity log"
+complete -c huntr -n "__fish_use_subcommand" -a config      -d "Manage CLI configuration"
+complete -c huntr -n "__fish_use_subcommand" -a completions -d "Generate shell completion script"
+
+# Global flag
+complete -c huntr -s t -l token -d "API token (overrides all other sources)" -r
+
+# boards subcommands
+complete -c huntr -n "__fish_seen_subcommand_from boards"     -a list -d "List all your boards"
+complete -c huntr -n "__fish_seen_subcommand_from boards"     -a get  -d "Get details of a specific board"
+
+# jobs subcommands
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a list -d "List jobs on a board"
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a get  -d "Get details of a specific job"
+
+# activities subcommands
+complete -c huntr -n "__fish_seen_subcommand_from activities" -a list     -d "List actions for a board"
+complete -c huntr -n "__fish_seen_subcommand_from activities" -a week-csv -d "Export last 7 days as CSV"
+
+# config subcommands
+complete -c huntr -n "__fish_seen_subcommand_from config" -a set-token        -d "Save API token"
+complete -c huntr -n "__fish_seen_subcommand_from config" -a capture-session  -d "Capture Clerk session from browser"
+complete -c huntr -n "__fish_seen_subcommand_from config" -a check-cdp        -d "Check Chrome DevTools connectivity"
+complete -c huntr -n "__fish_seen_subcommand_from config" -a set-session      -d "Save Clerk session cookie"
+complete -c huntr -n "__fish_seen_subcommand_from config" -a test-session     -d "Test stored Clerk session"
+complete -c huntr -n "__fish_seen_subcommand_from config" -a show-token       -d "Show configured auth sources"
+complete -c huntr -n "__fish_seen_subcommand_from config" -a clear-token      -d "Remove saved API token"
+complete -c huntr -n "__fish_seen_subcommand_from config" -a clear-session    -d "Remove saved Clerk session"
+
+# completions shell argument
+complete -c huntr -n "__fish_seen_subcommand_from completions" -a "bash zsh fish"
+`);
+        break;
+
+      default:
+        console.error(`Unknown shell: ${shell}. Supported: bash, zsh, fish`);
+        process.exit(1);
     }
   });
 
