@@ -15,7 +15,8 @@ jobs:
     name: Sync GitHub Labels
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
