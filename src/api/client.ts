@@ -1,8 +1,11 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import dotenv from 'dotenv';
 
-// Load .env file silently (debug: false suppresses info messages)
-dotenv.config({ debug: false });
+// Note: We do not auto-load .env to avoid noisy logs.
+// If you want .env loaded, run with HUNTR_LOAD_ENV=true and we will load it explicitly.
+import dotenv from 'dotenv';
+if (process.env.HUNTR_LOAD_ENV === 'true') {
+  dotenv.config({ debug: false });
+}
 
 /** A static token string OR an async function that returns a fresh token. */
 export type TokenProvider = string | (() => Promise<string>);

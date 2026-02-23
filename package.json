@@ -8,8 +8,8 @@
     "huntr": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsx src/cli.ts",
+    "build": "node build.mjs",
+"dev": "DOTENV_CONFIG_SILENT=true TSX_LOG_LEVEL=error tsx src/cli.ts",
     "start": "node dist/cli.js",
     "lint": "eslint src --max-warnings 13",
     "lint:fix": "eslint src --fix",
@@ -54,6 +54,7 @@
     "@types/node": "^25.3.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "esbuild": "^0.27.3",
     "eslint": "^8.56.0",
     "husky": "^9.0.0",
     "lint-staged": "^15.0.0",

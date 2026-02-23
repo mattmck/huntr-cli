@@ -4,6 +4,10 @@ import os from 'os';
 
 export interface HuntrConfig {
   apiToken?: string;
+  api?: {
+    boardsPath?: '/boards' | '/board';
+    boardsShape?: 'array' | 'dataArray' | 'map';
+  };
 }
 
 export class ConfigManager {
@@ -40,6 +44,19 @@ export class ConfigManager {
 
   getToken(): string | undefined {
     return this.getConfig().apiToken;
+  }
+
+  getBoardsApiPrefs(): { path?: '/boards' | '/board'; shape?: 'array' | 'dataArray' | 'map' } {
+    const cfg = this.getConfig();
+    return { path: cfg.api?.boardsPath, shape: cfg.api?.boardsShape };
+  }
+
+  setBoardsApiPrefs(prefs: { path: '/boards' | '/board'; shape: 'array' | 'dataArray' | 'map' }): void {
+    const cfg = this.getConfig();
+    cfg.api = cfg.api ?? {};
+    cfg.api.boardsPath = prefs.path;
+    cfg.api.boardsShape = prefs.shape;
+    this.setConfig(cfg);
   }
 
   setToken(token: string): void {
