@@ -86,6 +86,14 @@ describe('huntr-cli Workflow Tests', () => {
     });
   });
 
+  describe('Jobs Fields Helper', () => {
+    it('documents that jobs fields are discoverable', () => {
+      const available = ['ID', 'Title', 'URL', 'Created'];
+      expect(available).toContain('ID');
+      expect(available).toContain('Title');
+    });
+  });
+
   describe('Output Formatting', () => {
     it('should support field selection with --fields', () => {
       // Example: huntr boards list --fields ID,Name

@@ -39,6 +39,7 @@ export class PersonalActionsApi {
     jobTitle: string;
     status: string;
     url: string;
+    address: string;
   }>> {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const [actions, jobsResponse] = await Promise.all([
@@ -60,6 +61,7 @@ export class PersonalActionsApi {
           jobTitle: a.data?.job?.title ?? '',
           status: a.data?.toList?.name ?? '',
           url: job?.url ?? '',
+          address: job?.location?.address ?? '',
         };
       });
   }

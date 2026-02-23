@@ -36,9 +36,10 @@ npm run typecheck  # Should pass
 ### Development
 
 ```bash
-npm run dev -- me                    # Run CLI in dev mode
-npm run dev -- boards list           # List boards
-npm run dev -- activities list <id>  # List activities
+# Load .env if needed by prefixing with HUNTR_LOAD_ENV=true
+HUNTR_LOAD_ENV=true npm run dev -- me                    # Run CLI in dev mode
+HUNTR_LOAD_ENV=true npm run dev -- boards list           # List boards
+HUNTR_LOAD_ENV=true npm run dev -- activities list <id>  # List activities
 ```
 
 ### Building & Testing
