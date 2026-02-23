@@ -132,18 +132,56 @@ boards
 
 const jobs = program.command('jobs').description('Manage jobs on your boards');
 
+const JOB_AVAILABLE_FIELDS: ReadonlyArray<string> = [
+  'ID', 'Title', 'URL', 'RootDomain', 'Description',
+  'CompanyId', 'ListId', 'BoardId',
+  'SalaryMin', 'SalaryMax', 'SalaryCurrency',
+  'LocationAddress', 'LocationName', 'LocationUrl', 'LocationLat', 'LocationLng',
+  'Created', 'Updated', 'LastMoved',
+];
+
+jobs
+  .command('fields')
+  .description('List available fields for jobs list')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (options) => {
+    try {
+      const rows = JOB_AVAILABLE_FIELDS.map((f: string) => ({ Field: f }));
+      if (options.json) {
+        console.log(JSON.stringify(rows.map(r => r.Field), null, 2));
+      } else {
+        console.log(formatTableWithFields(rows, ['Field']));
+      }
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
 jobs
   .command('list')
   .description('List jobs on a board')
   .argument('<board-id>', 'Board ID')
   .option('-f, --format <format>', 'Output format: table (default), json, csv, pdf, excel')
   .option('-j, --json', 'Output as JSON (legacy, same as --format json)')
-  .option('--fields <fields>', 'Comma-separated list of fields to include')
+  .option('--fields <fields>', 'Comma-separated list of fields to include (use "help" or "all")')
   .action(async (boardId, options, command) => {
     try {
-      const AVAILABLE_FIELDS = ['ID', 'Title', 'URL', 'Created'];
+      const AVAILABLE_FIELDS = [...JOB_AVAILABLE_FIELDS];
       const listOpts = parseListOptions(options);
-      const fields = validateFields(AVAILABLE_FIELDS, listOpts.fields);
+
+      // If user asked for field help, print and exit success
+      const wantsHelp = (listOpts.fields ?? []).some(f => /^(help|\?)$/i.test(f));
+      if (wantsHelp) {
+        const rows = AVAILABLE_FIELDS.map(f => ({ Field: f }));
+        console.log(formatTableWithFields(rows, ['Field']));
+        return;
+      }
+
+      const requested = listOpts.fields;
+      const fields = (requested && requested.length === 1 && /^(all)$/i.test(requested[0]))
+        ? AVAILABLE_FIELDS.slice()
+        : validateFields(AVAILABLE_FIELDS, requested);
 
       const api = await getApi(command.parent?.parent?.opts().token);
       const jobsList = await api.jobs.listByBoardFlat(boardId);
@@ -155,9 +193,24 @@ jobs
 
       const rows = jobsList.map(j => ({
         ID: j.id,
-        Title: j.title,
-        URL: j.url ?? 'N/A',
+        Title: j.title ?? '',
+        URL: j.url ?? '',
+        RootDomain: j.rootDomain ?? '',
+        Description: j.htmlDescription ?? '',
+        CompanyId: j._company ?? '',
+        ListId: j._list ?? '',
+        BoardId: j._board ?? '',
+        SalaryMin: j.salary?.min ?? '',
+        SalaryMax: j.salary?.max ?? '',
+        SalaryCurrency: j.salary?.currency ?? '',
+        LocationAddress: j.location?.address ?? '',
+        LocationName: j.location?.name ?? '',
+        LocationUrl: j.location?.url ?? '',
+        LocationLat: j.location?.lat ?? '',
+        LocationLng: j.location?.lng ?? '',
         Created: new Date(j.createdAt).toLocaleDateString(),
+        Updated: j.updatedAt ? new Date(j.updatedAt).toLocaleDateString() : '',
+        LastMoved: j.lastMovedAt ? new Date(j.lastMovedAt).toLocaleDateString() : '',
       }));
 
       if (listOpts.format === 'json') {
