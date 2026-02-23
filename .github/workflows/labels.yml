@@ -6,6 +6,9 @@ on:
       - .github/labels.json
     branches:
       - main
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sundays at midnight UTC
 
 jobs:
   sync-labels:
