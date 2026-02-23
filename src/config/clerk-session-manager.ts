@@ -165,7 +165,8 @@ export class ClerkSessionManager {
       const req = https.request(options, (res) => {
         let body = '';
         res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
-        res.on('end', async () => {
+res.on('end', () => {
+          void (async () => {
           if (res.statusCode === 200 || res.statusCode === 201) {
             try {
               const data = JSON.parse(body);
@@ -194,6 +195,7 @@ export class ClerkSessionManager {
               `Clerk token refresh failed: HTTP ${res.statusCode}\n${body.substring(0, 300)}`,
             ));
           }
+          })();
         });
       });
 

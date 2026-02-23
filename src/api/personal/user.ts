@@ -5,6 +5,7 @@ export class PersonalUserApi {
   constructor(private client: HuntrApiClient) {}
 
   async getProfile(): Promise<UserProfile> {
-    return this.client.get<UserProfile>('/me');
+    // Official endpoint returns the current user's profile
+    return this.client.get<UserProfile>('/user');
   }
 }

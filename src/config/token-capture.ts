@@ -15,7 +15,8 @@ export class TokenCaptureServer {
 
   async start(port: number = 17432): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.server = http.createServer(async (req, res) => {
+this.server = http.createServer((req, res) => {
+        void (async () => {
         // Enable CORS for file:// protocol
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -41,7 +42,8 @@ export class TokenCaptureServer {
             body += chunk.toString();
           });
 
-          req.on('end', async () => {
+          req.on('end', () => {
+            void (async () => {
             try {
               const data = JSON.parse(body);
               const token = data.token;
@@ -70,21 +72,24 @@ export class TokenCaptureServer {
               }, 100);
 
             } catch (error) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: false, error: 'Internal server error' }));
-            }
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: 'Internal server error' }));
+              }
+            })();
           });
         } else {
           res.writeHead(404);
           res.end('Not found');
         }
+        })();
       });
 
-      this.server.on('error', (error: any) => {
-        if (error.code === 'EADDRINUSE') {
+      this.server.on('error', (error: unknown) => {
+        const err = error as { code?: string } | Error;
+        if ((err as any).code === 'EADDRINUSE') {
           reject(new Error(`Port ${port} is already in use`));
         } else {
-          reject(error);
+          reject(err as Error);
         }
       });
 
