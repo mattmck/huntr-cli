@@ -1,6 +1,8 @@
 import { password } from '@inquirer/prompts';
 import { ConfigManager } from './config-manager';
 import { KeychainManager } from './keychain-manager';
+import { ClerkSessionManager } from './clerk-session-manager';
+import type { TokenProvider } from '../api/client';
 
 export interface TokenOptions {
   token?: string;
@@ -10,45 +12,49 @@ export interface TokenOptions {
 export class TokenManager {
   private configManager: ConfigManager;
   private keychainManager: KeychainManager;
+  readonly clerkSession: ClerkSessionManager;
 
   constructor() {
     this.configManager = new ConfigManager();
     this.keychainManager = new KeychainManager();
+    this.clerkSession = new ClerkSessionManager();
   }
 
   /**
-   * Get token with fallback chain:
-   * 1. CLI argument (passed via options)
-   * 2. Environment variable (HUNTR_API_TOKEN)
-   * 3. Config file (~/.huntr/config.json)
-   * 4. macOS Keychain
-   * 5. Interactive prompt (if usePrompt is true)
+   * Returns a TokenProvider for use with HuntrPersonalApi.
+   *
+   * Resolution order:
+   *   1. CLI --token argument (static, passed via options)
+   *   2. HUNTR_API_TOKEN env var (static)
+   *   3. Stored Clerk session cookie → auto-refresh on every call
+   *   4. Static token from config file or keychain
+   *   5. Interactive prompt
    */
-  async getToken(options: TokenOptions = {}): Promise<string> {
-    // 1. Check CLI argument
+  async getTokenProvider(options: TokenOptions = {}): Promise<TokenProvider> {
+    // 1. CLI argument — static token
     if (options.token) {
       return options.token;
     }
 
-    // 2. Check environment variable
+    // 2. Environment variable — static token
     const envToken = process.env.HUNTR_API_TOKEN;
     if (envToken) {
       return envToken;
     }
 
-    // 3. Check config file
+    // 3. Clerk session — dynamic refresh
+    if (await this.clerkSession.hasSession()) {
+      return () => this.clerkSession.getFreshToken();
+    }
+
+    // 4. Static token from config or keychain
     const configToken = this.configManager.getToken();
-    if (configToken) {
-      return configToken;
-    }
+    if (configToken) return configToken;
 
-    // 4. Check keychain
     const keychainToken = await this.keychainManager.getToken();
-    if (keychainToken) {
-      return keychainToken;
-    }
+    if (keychainToken) return keychainToken;
 
-    // 5. Prompt user if allowed
+    // 5. Interactive prompt — static token (short-lived, but usable)
     if (options.usePrompt !== false) {
       const promptedToken = await password({
         message: 'Enter your Huntr API token:',
@@ -56,7 +62,6 @@ export class TokenManager {
       });
 
       if (promptedToken) {
-        // Ask if they want to save it
         const saveChoice = await this.promptSaveLocation();
         if (saveChoice !== 'none') {
           await this.saveToken(promptedToken, saveChoice);
@@ -66,33 +71,45 @@ export class TokenManager {
     }
 
     throw new Error(
-      'HUNTR_API_TOKEN not found. Please provide it via:\n' +
-      '  - Command line: --token <token>\n' +
-      '  - Environment variable: HUNTR_API_TOKEN\n' +
-      '  - Config file: huntr config set-token <token>\n' +
-      '  - Keychain: huntr config set-token --keychain <token>'
+      'No Huntr credentials found. Options:\n' +
+      '  • Clerk session (recommended): huntr config set-session <__session-cookie>\n' +
+      '  • Static token:                huntr config set-token <token> [--keychain]\n' +
+      '  • CLI flag:                    huntr --token <token> <command>\n' +
+      '  • Environment:                 HUNTR_API_TOKEN=<token> huntr <command>',
     );
+  }
+
+  /**
+   * Legacy helper — returns a resolved static token string.
+   * Use getTokenProvider() for new code so session refresh works.
+   */
+  async getToken(options: TokenOptions = {}): Promise<string> {
+    if (options.token) return options.token;
+    const envToken = process.env.HUNTR_API_TOKEN;
+    if (envToken) return envToken;
+    const configToken = this.configManager.getToken();
+    if (configToken) return configToken;
+    const keychainToken = await this.keychainManager.getToken();
+    if (keychainToken) return keychainToken;
+    throw new Error('No static token found. Try huntr config set-token or set-session.');
   }
 
   private async promptSaveLocation(): Promise<'config' | 'keychain' | 'none'> {
     const { select } = await import('@inquirer/prompts');
-    
-    const choices = [
-      { name: 'Save to config file (~/.huntr/config.json)', value: 'config' as const },
-      { name: 'Save to macOS Keychain (secure)', value: 'keychain' as const },
-      { name: 'Do not save (enter each time)', value: 'none' as const },
-    ];
-
     return await select({
       message: 'Where would you like to save this token?',
-      choices,
+      choices: [
+        { name: 'Save to config file (~/.huntr/config.json)', value: 'config' as const },
+        { name: 'Save to macOS Keychain (secure)', value: 'keychain' as const },
+        { name: 'Do not save (enter each time)', value: 'none' as const },
+      ],
     }) as 'config' | 'keychain' | 'none';
   }
 
   async saveToken(token: string, location: 'config' | 'keychain'): Promise<void> {
     if (location === 'config') {
       this.configManager.setToken(token);
-    } else if (location === 'keychain') {
+    } else {
       await this.keychainManager.setToken(token);
     }
   }
@@ -110,11 +127,13 @@ export class TokenManager {
     env: boolean;
     config: boolean;
     keychain: boolean;
+    clerkSession: boolean;
   }> {
     return {
       env: !!process.env.HUNTR_API_TOKEN,
       config: !!this.configManager.getToken(),
       keychain: !!(await this.keychainManager.getToken()),
+      clerkSession: await this.clerkSession.hasSession(),
     };
   }
 }

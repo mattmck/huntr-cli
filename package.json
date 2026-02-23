@@ -1,7 +1,8 @@
 {
   "name": "huntr-cli",
   "version": "1.0.0",
-  "description": "CLI tool for Huntr Organization API",
+  "type": "module",
+  "description": "CLI tool for managing your Huntr job search board. Track activities, search jobs, and manage your application pipeline from the terminal.",
   "main": "dist/cli.js",
   "bin": {
     "huntr": "./dist/cli.js"
@@ -10,28 +11,51 @@
     "build": "tsc",
     "dev": "tsx src/cli.ts",
     "start": "node dist/cli.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint src --max-warnings 13",
+    "lint:fix": "eslint src --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mattmck/huntr-api.git"
+    "url": "git+https://github.com/mattmck/huntr-cli.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "huntr",
+    "job-search",
+    "cli",
+    "job-tracking",
+    "activities",
+    "command-line"
+  ],
+  "author": "Matt McKnight <mcknight.matthew@gmail.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/mattmck/huntr-api/issues"
+    "url": "https://github.com/mattmck/huntr-cli/issues"
   },
-  "homepage": "https://github.com/mattmck/huntr-api#readme",
+  "homepage": "https://github.com/mattmck/huntr-cli#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@inquirer/prompts": "^8.2.1",
     "axios": "^1.13.5",
     "commander": "^14.0.3",
     "dotenv": "^17.3.1",
-    "keytar": "^7.9.0"
+    "exceljs": "^4.4.0",
+    "keytar": "^7.9.0",
+    "pdfkit": "^0.13.0"
   },
   "devDependencies": {
+    "@eslint/js": "^8.56.0",
     "@types/node": "^25.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

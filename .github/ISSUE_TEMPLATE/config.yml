@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Huntr Community
+    url: https://huntr.co
+    about: Visit Huntr's main site
+  - name: GitHub Discussions
+    url: https://github.com/mattmck/huntr-cli/discussions
+    about: Join discussions about huntr-cli
