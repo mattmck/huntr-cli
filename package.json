@@ -14,7 +14,8 @@
     "lint": "eslint src --max-warnings 13",
     "lint:fix": "eslint src --fix",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
     "prepare": "husky install",
     "prepublishOnly": "npm run build"
   },
@@ -57,6 +58,7 @@
     "husky": "^9.0.0",
     "lint-staged": "^15.0.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.0"
   }
 }

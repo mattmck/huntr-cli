@@ -1,0 +1,21 @@
+name: Sync Labels
+
+on:
+  push:
+    paths:
+      - .github/labels.json
+    branches:
+      - main
+
+jobs:
+  sync-labels:
+    name: Sync GitHub Labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync labels
+        uses: crazy-max/ghaction-github-labeler@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: .github/labels.json

@@ -1,0 +1,92 @@
+[
+  {
+    "name": "type/bug",
+    "color": "d73a49",
+    "description": "Something isn't working"
+  },
+  {
+    "name": "type/feature",
+    "color": "a2eeef",
+    "description": "New feature or enhancement"
+  },
+  {
+    "name": "type/docs",
+    "color": "0075ca",
+    "description": "Documentation improvements"
+  },
+  {
+    "name": "type/chore",
+    "color": "ffc274",
+    "description": "Build, dependencies, or tooling"
+  },
+  {
+    "name": "type/refactor",
+    "color": "cccccc",
+    "description": "Code restructuring without functional change"
+  },
+  {
+    "name": "type/test",
+    "color": "5319e7",
+    "description": "Test improvements or fixes"
+  },
+  {
+    "name": "type/perf",
+    "color": "fbca04",
+    "description": "Performance improvements"
+  },
+  {
+    "name": "priority/critical",
+    "color": "b60205",
+    "description": "Blocking issue, needs immediate attention"
+  },
+  {
+    "name": "priority/high",
+    "color": "ff6b6b",
+    "description": "High priority, should be addressed soon"
+  },
+  {
+    "name": "priority/low",
+    "color": "e4e669",
+    "description": "Low priority, nice-to-have"
+  },
+  {
+    "name": "status/in-progress",
+    "color": "1f883d",
+    "description": "Currently being worked on"
+  },
+  {
+    "name": "status/blocked",
+    "color": "b60205",
+    "description": "Blocked by another issue or PR"
+  },
+  {
+    "name": "status/needs-review",
+    "color": "d4c5f9",
+    "description": "Waiting for code review"
+  },
+  {
+    "name": "status/needs-testing",
+    "color": "ffc274",
+    "description": "Ready for testing"
+  },
+  {
+    "name": "scope/cli",
+    "color": "c2e0c6",
+    "description": "Core CLI commands and features"
+  },
+  {
+    "name": "scope/auth",
+    "color": "c2e0c6",
+    "description": "Authentication and token management"
+  },
+  {
+    "name": "scope/output",
+    "color": "c2e0c6",
+    "description": "Output formatting (PDF, Excel, CSV, JSON, etc.)"
+  },
+  {
+    "name": "scope/infra",
+    "color": "c2e0c6",
+    "description": "CI/CD, GitHub Actions, build tooling"
+  }
+]
