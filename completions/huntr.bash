@@ -4,11 +4,11 @@ _huntr_completions() {
   local cur prev words cword
   _init_completion || return
 
-  local commands="me boards jobs activities config"
+  local commands="me boards jobs activities config login logout"
   local global_opts="-t --token -h --help -V --version"
   local format_opts="-f --format json table csv pdf excel"
   local list_opts="-f --format --fields -d --days --types -w --week"
-  local config_cmds="capture-session test-session check-cdp set-token show-token clear-token clear-session"
+  local config_cmds="capture-session test-session check-cdp set-token set-session show-token clear-token clear-session"
 
   # Handle first level command
   if [[ $cword -eq 1 ]]; then
@@ -74,6 +74,9 @@ _huntr_completions() {
           set-token)
             COMPREPLY=($(compgen -W "$global_opts" -- "$cur"))
             ;;
+          set-session)
+            # No additional options
+            ;;
           clear-token)
             COMPREPLY=($(compgen -W "--all" -- "$cur"))
             ;;
@@ -82,6 +85,9 @@ _huntr_completions() {
             ;;
         esac
       fi
+      ;;
+    login|logout)
+      # No additional options
       ;;
   esac
 
