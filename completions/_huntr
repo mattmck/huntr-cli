@@ -8,6 +8,9 @@ _huntr() {
     'jobs:Manage jobs on your boards'
     'activities:View your board activity log'
     'config:Manage CLI configuration'
+    'completions:Generate shell completion script'
+    'login:Log in to Huntr (captures browser session, macOS only)'
+    'logout:Log out and clear stored credentials'
   )
 
   local -a boards_commands
@@ -34,6 +37,7 @@ _huntr() {
     'test-session:Verify stored session works'
     'check-cdp:Check Chrome DevTools Protocol connection'
     'set-token:Save API token to config'
+    'set-session:Save Clerk session cookie for automatic JWT refresh'
     'show-token:Show configured token sources'
     'clear-token:Remove saved token'
     'clear-session:Remove stored Clerk session'
@@ -147,7 +151,7 @@ _huntr() {
               ;;
             args)
               case $line[1] in
-                capture-session|test-session|check-cdp|show-token|clear-session)
+                capture-session|test-session|check-cdp|show-token|clear-session|set-session)
                   # No additional arguments
                   ;;
                 set-token)
@@ -159,6 +163,9 @@ _huntr() {
               esac
               ;;
           esac
+          ;;
+        login|logout)
+          # No additional arguments
           ;;
       esac
       ;;
