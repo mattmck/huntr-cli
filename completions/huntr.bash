@@ -4,7 +4,7 @@ _huntr_completions() {
   local cur prev words cword
   _init_completion || return
 
-  local commands="me boards jobs activities config login logout"
+  local commands="me boards jobs activities config login logout completions"
   local global_opts="-t --token -h --help -V --version"
   local format_opts="-f --format json table csv pdf excel"
   local list_opts="-f --format --fields -d --days --types -w --week"

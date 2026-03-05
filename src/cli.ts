@@ -750,7 +750,7 @@ _huntr "\$@"
         console.log(`# huntr fish completion
 # Save to ~/.config/fish/completions/huntr.fish
 
-set -l top_commands me boards jobs activities config completions
+set -l top_commands me boards jobs activities config login logout completions
 
 # Disable file completions globally
 complete -c huntr -f
