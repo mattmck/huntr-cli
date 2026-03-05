@@ -18,6 +18,15 @@ Display help for the command
 .BR \-V , " \-\-version"
 Output version number
 .SH COMMANDS
+.SS Login / Logout
+.TP
+.B login
+Log in to Huntr by capturing your browser session automatically (recommended, macOS only).
+Equivalent to \fBconfig capture-session\fR.
+.TP
+.B logout
+Log out and clear all stored credentials (session and tokens).
+Equivalent to running \fBconfig clear-session\fR followed by \fBconfig clear-token\fR.
 .SS User Profile
 .TP
 .B me [\-j | \-\-json]
@@ -117,6 +126,18 @@ Options:
 Save to macOS Keychain instead of config file
 .RE
 .TP
+.B config set-session SESSION_COOKIE [SESSION_ID]
+Save Clerk session cookie for automatic JWT refresh (recommended)
+.RS
+Arguments:
+.TP
+.B SESSION_COOKIE
+Value of the __session cookie from your browser
+.TP
+.B SESSION_ID
+Clerk session ID (sess_...) — auto-detected from cookie if omitted
+.RE
+.TP
 .B config show-token
 Show which authentication sources are configured
 .TP
@@ -179,6 +200,12 @@ Interactive prompt
 .P
 Recommended: Session-based auth on macOS, environment variable on other platforms.
 .SH EXAMPLES
+.TP
+.B huntr login
+Log in by capturing your browser session (macOS recommended)
+.TP
+.B huntr logout
+Log out and clear all stored credentials
 .TP
 .B huntr me
 Show your user profile

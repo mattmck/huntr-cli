@@ -599,6 +599,34 @@ config
     }
   });
 
+// ── login / logout ───────────────────────────────────────────────────────────
+
+program
+  .command('login')
+  .description('Log in to Huntr by capturing your browser session (macOS only, recommended)')
+  .action(async () => {
+    try {
+      await captureSession();
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('logout')
+  .description('Log out and clear stored credentials')
+  .action(async () => {
+    try {
+      await tokenManager.clerkSession.clearSession();
+      await tokenManager.clearToken('all');
+      console.log('✓ Logged out — session and tokens cleared');
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
 // ── completions ──────────────────────────────────────────────────────────────
 
 program
@@ -630,7 +658,7 @@ _huntr_completions() {
   local cur prev words cword
   _init_completion || return
 
-  local top_commands="me boards jobs activities config completions"
+  local top_commands="me boards jobs activities config login logout completions"
   local boards_commands="list get"
   local jobs_commands="list get"
   local activities_commands="list week-csv"
@@ -676,6 +704,8 @@ _huntr() {
     'jobs:Manage jobs on your boards'
     'activities:View your board activity log'
     'config:Manage CLI configuration'
+    'login:Log in to Huntr (captures browser session, macOS only)'
+    'logout:Log out and clear stored credentials'
     'completions:Generate shell completion script'
   )
   boards_commands=('list:List all your boards' 'get:Get details of a specific board')
@@ -720,7 +750,7 @@ _huntr "\$@"
         console.log(`# huntr fish completion
 # Save to ~/.config/fish/completions/huntr.fish
 
-set -l top_commands me boards jobs activities config completions
+set -l top_commands me boards jobs activities config login logout completions
 
 # Disable file completions globally
 complete -c huntr -f
@@ -731,6 +761,8 @@ complete -c huntr -n "__fish_use_subcommand" -a boards      -d "Manage your boar
 complete -c huntr -n "__fish_use_subcommand" -a jobs        -d "Manage jobs on your boards"
 complete -c huntr -n "__fish_use_subcommand" -a activities  -d "View your board activity log"
 complete -c huntr -n "__fish_use_subcommand" -a config      -d "Manage CLI configuration"
+complete -c huntr -n "__fish_use_subcommand" -a login       -d "Log in to Huntr (captures browser session, macOS only)"
+complete -c huntr -n "__fish_use_subcommand" -a logout      -d "Log out and clear stored credentials"
 complete -c huntr -n "__fish_use_subcommand" -a completions -d "Generate shell completion script"
 
 # Global flag
