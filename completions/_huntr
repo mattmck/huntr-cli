@@ -8,6 +8,7 @@ _huntr() {
     'jobs:Manage jobs on your boards'
     'activities:View your board activity log'
     'config:Manage CLI configuration'
+    'completions:Generate shell completion script'
     'login:Log in to Huntr (captures browser session, macOS only)'
     'logout:Log out and clear stored credentials'
   )
