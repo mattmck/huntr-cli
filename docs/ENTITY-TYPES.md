@@ -460,5 +460,6 @@ huntr activities list <board-id> --json | jq '.[] | {date: .date, company: .comp
 
 ## See Also
 
+- [API Endpoints](./API-ENDPOINTS.md) — Raw endpoint shapes, response structures, and non-working routes
 - [Output Formats](./OUTPUT-FORMATS.md) — How fields are displayed in different formats
 - [Output Examples](./OUTPUT-EXAMPLES.md) — Practical usage examples
