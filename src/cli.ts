@@ -5,6 +5,7 @@ import { HuntrPersonalApi } from './api/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
 import { captureSession, checkCdpSession } from './commands/capture-session';
+import { version } from '../package.json';
 
 const program = new Command();
 const tokenManager = new TokenManager();
@@ -151,7 +152,7 @@ async function getApi(token?: string): Promise<HuntrPersonalApi> {
 program
   .name('huntr')
   .description('CLI tool for Huntr')
-  .version('1.1.0')
+  .version(version)
   .option('-t, --token <token>', 'API token (overrides all other sources)');
 
 // ── me ───────────────────────────────────────────────────────────────────────
