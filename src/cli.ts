@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command, InvalidArgumentError } from 'commander';
+import { validateFields, formatCsvWithFields, formatTableWithFields, formatJsonWithFields } from './lib/list-options';
 import { HuntrPersonalApi } from './api/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
@@ -20,6 +21,7 @@ type SharedListOptions = {
   until?: Date;
   limit?: number;
   week?: boolean;
+  fields?: string;
 };
 
 function parsePositiveInt(value: string, flagName: string): number {
@@ -254,6 +256,9 @@ boards
 
 const jobs = program.command('jobs').description('Manage jobs on your boards');
 
+const JOB_AVAILABLE_FIELDS = ['id', 'title', 'list', 'url', 'location', 'salary_min', 'salary_max', 'salary_currency', 'created_at', 'updated_at', 'last_moved_at'];
+const JOB_DEFAULT_FIELDS = ['id', 'title', 'list', 'url', 'created_at'];
+
 jobs
   .command('list')
   .description('List jobs on a board')
@@ -264,32 +269,53 @@ jobs
   .option('--since <date>', 'Show jobs created since YYYY-MM-DD', parseDateOption)
   .option('--until <date>', 'Show jobs created until YYYY-MM-DD (inclusive)', parseDateOption)
   .option('--limit <n>', 'Maximum rows to output', parseLimitOption)
+  .option(
+    '--fields <fields>',
+    `Comma-separated fields to include (available: ${JOB_AVAILABLE_FIELDS.join(', ')})`,
+  )
   .action(async (boardId, options, command) => {
     try {
       const format = resolveOutputFormat(options);
       const range = resolveDateRange(options);
 
       const api = await getApi(command.parent?.parent?.opts().token);
-      const jobsList = await api.jobs.listByBoardFlat(boardId);
+      const [jobsList, board] = await Promise.all([
+        api.jobs.listByBoardFlat(boardId),
+        api.boards.get(boardId),
+      ]);
+      const listNames = new Map<string, string>(
+        (board.lists ?? []).map(l => [l.id, l.name]),
+      );
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
 
-      if (format === 'json') {
-        console.log(JSON.stringify(filtered, null, 2));
-      } else if (filtered.length === 0) {
+      const requestedFields = options.fields
+        ? options.fields.split(',').map((f: string) => f.trim()).filter(Boolean)
+        : JOB_DEFAULT_FIELDS;
+      const activeFields = validateFields(JOB_AVAILABLE_FIELDS, requestedFields);
+
+      const rows = filtered.map(j => ({
+        id: j.id,
+        title: j.title,
+        list: (j._list ? listNames.get(j._list) : undefined) ?? '',
+        url: j.url ?? '',
+        location: j.location?.address ?? j.location?.name ?? '',
+        salary_min: String(j.salary?.min ?? ''),
+        salary_max: String(j.salary?.max ?? ''),
+        salary_currency: j.salary?.currency ?? '',
+        created_at: j.createdAt,
+        updated_at: j.updatedAt ?? '',
+        last_moved_at: j.lastMovedAt ?? '',
+      }));
+
+      if (filtered.length === 0) {
         console.log('No jobs found.');
+      } else if (format === 'json') {
+        console.log(formatJsonWithFields(rows, activeFields));
       } else if (format === 'csv') {
-        printCsv(
-          ['id', 'title', 'url', 'created_at'],
-          filtered.map(j => [j.id, j.title, j.url ?? '', j.createdAt]),
-        );
+        console.log(formatCsvWithFields(rows, activeFields));
       } else {
-        console.table(filtered.map(j => ({
-          ID: j.id,
-          Title: j.title,
-          URL: j.url ?? 'N/A',
-          Created: new Date(j.createdAt).toLocaleDateString(),
-        })));
+        console.log(formatTableWithFields(rows, activeFields));
       }
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
@@ -363,7 +389,7 @@ activities
         console.log('No activities found.');
       } else if (format === 'csv') {
         printCsv(
-          ['date', 'type', 'company', 'job', 'status'],
+          ['date', 'type', 'company', 'job', 'list'],
           actions.map(a => [
             new Date(a.date || a.createdAt).toISOString(),
             a.actionType,
@@ -378,7 +404,7 @@ activities
           Type: a.actionType,
           Company: a.data?.company?.name ?? '',
           Job: (a.data?.job?.title ?? '').substring(0, 40),
-          Status: a.data?.toList?.name ?? '',
+          List: a.data?.toList?.name ?? '',
         })));
       }
     } catch (error) {
@@ -395,14 +421,14 @@ activities
     try {
       const api = await getApi(command.parent?.parent?.opts().token);
       const rows = await api.actions.weekSummary(boardId);
-      const lines = ['Date,Action,Company,Job Title,Status,Job URL'];
+      const lines = ['Date,Action,Company,Job Title,List,Job URL'];
       for (const r of rows) {
         lines.push([
           r.date,
           r.actionType,
           `"${r.company.replace(/"/g, '""')}"`,
           `"${r.jobTitle.replace(/"/g, '""')}"`,
-          r.status,
+          r.list,
           r.url,
         ].join(','));
       }

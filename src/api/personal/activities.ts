@@ -37,7 +37,7 @@ export class PersonalActionsApi {
     actionType: string;
     company: string;
     jobTitle: string;
-    status: string;
+    list: string;
     url: string;
     address: string;
   }>> {
@@ -59,7 +59,7 @@ export class PersonalActionsApi {
           actionType: a.actionType,
           company: a.data?.company?.name ?? '',
           jobTitle: a.data?.job?.title ?? '',
-          status: a.data?.toList?.name ?? '',
+          list: a.data?.toList?.name ?? '',
           url: job?.url ?? '',
           address: job?.location?.address ?? '',
         };
