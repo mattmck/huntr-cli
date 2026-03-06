@@ -9,14 +9,14 @@ This document shows the complete structure of each entity type returned by huntr
 ```typescript
 {
   id: "68bf9e33f871e5004a5eb58e",
-  _id: "507f1f77bcf86cd799439011",
-  name: "My Job Search",
-  createdAt: "2024-01-15T10:30:00Z",
-  updatedAt: "2024-02-20T15:45:00Z",
-  lists: [
-    { id: "list_1", _id: "...", name: "Active Leads", order: 1 },
-    { id: "list_2", _id: "...", name: "Interviewing", order: 2 }
-  ]
+  _id: "68bf9e33f871e5004a5eb58e",
+  name: "Job Search 2025",
+  createdAt: "2025-09-09T03:25:39.770Z",
+  updatedAt: "2026-01-22T18:23:46.492Z",
+  _lists: [
+    "68bf9e33f871e5004a5eb592",
+    "68bf9e33f871e5004a5eb593"
+  ]  // bare list IDs — use GET /board/:id/lists to resolve names
 }
 ```
 
@@ -35,11 +35,7 @@ This document shows the complete structure of each entity type returned by huntr
   _board: "board_id_ref",
   _activities: ["action_1", "action_2"],
   _notes: ["note_1"],
-  salary: {
-    min: 120000,
-    max: 150000,
-    currency: "USD"
-  },
+  salary: "$161,000.00 - $255,000.00",  // raw string, not a structured object
   location: {
     address: "San Francisco, CA",
     name: "San Francisco",
@@ -101,14 +97,13 @@ This document shows the complete structure of each entity type returned by huntr
 
 ```typescript
 {
-  id: "user_123",
-  _id: "507f1f77bcf86cd799439011",
-  email: "john@example.com",
-  givenName: "John",
-  familyName: "Doe",
-  firstName: "John",
-  lastName: "Doe",
-  createdAt: "2024-01-15T10:30:00Z"
+  id: "66688215168bb20075e89571",
+  _id: "66688215168bb20075e89571",
+  email: "user@example.com",
+  givenName: "Matthew",
+  familyName: "McKnight",
+  fullName: "Matthew McKnight",
+  auth0IdForMixpanel: "66688215168bb20075e89571"
 }
 ```
 
@@ -121,20 +116,28 @@ This document shows the complete structure of each entity type returned by huntr
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique board identifier (MongoDB ObjectId as string) |
-| `_id` | string | Alternative ID format |
-| `name` | string | Board name (e.g., "My Job Search") |
+| `_id` | string | Same as `id` |
+| `name` | string | Board name (e.g., "Job Search 2025") |
 | `createdAt` | ISO 8601 | Creation timestamp |
 | `updatedAt` | ISO 8601 | Last update timestamp |
-| `lists` | Array<BoardList> | Lists (columns) on the board |
+| `_lists` | string[] | Array of bare list IDs — resolve via `GET /board/:id/lists` |
+| `isArchived` | boolean | Whether board is archived |
 
 ### BoardList
+
+Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique list identifier |
-| `_id` | string | Alternative ID format |
-| `name` | string | List name (e.g., "Active Leads", "Interviewing") |
-| `order` | number? | Position order on board |
+| `_id` | string | Same as `id` |
+| `name` | string | List name (e.g., `wishlist`, `applied`, `interview`, `offer`, `rejected`) |
+| `_board` | string | Parent board ID |
+| `_jobs` | string[] | Array of job IDs in this list |
+| `stageType` | string\|null | Pipeline stage (`WISHLIST`, `APPLY`, `ON_SITE_INTERVIEW`, `OFFER_RECEIVED`, `REJECTED`); `null` for custom lists |
+| `suggestedActivityCategoryNames` | string[] | Suggested follow-up activity types |
+| `createdAt` | ISO 8601 | Creation timestamp |
+| `updatedAt` | ISO 8601 | Last update timestamp |
 
 ### Job
 
@@ -151,7 +154,7 @@ This document shows the complete structure of each entity type returned by huntr
 | `_board` | string | Board ID (reference) |
 | `_activities` | string[] | Activity IDs (references) |
 | `_notes` | string[] | Note IDs (references) |
-| `salary` | Salary? | Salary information |
+| `salary` | string? | Salary as raw string (e.g. `"$120,000 - $150,000"`); **not** a structured object |
 | `location` | Location? | Job location |
 | `createdAt` | ISO 8601 | When job was added |
 | `updatedAt` | ISO 8601 | Last update |
@@ -159,11 +162,7 @@ This document shows the complete structure of each entity type returned by huntr
 
 ### Salary
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `min` | number? | Minimum salary |
-| `max` | number? | Maximum salary |
-| `currency` | string? | Currency (e.g., "USD", "EUR") |
+> **Note:** `salary` is returned as a raw string by the API (e.g. `"$161,000.00 - $255,000.00"`). The TypeScript type `PersonalJob.salary` currently models it as a structured object — this is inaccurate and tracked in [issue #20](https://github.com/mattmck/huntr-cli/issues/20).
 
 ### Location
 
@@ -210,13 +209,12 @@ This document shows the complete structure of each entity type returned by huntr
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique user identifier |
-| `_id` | string? | Alternative ID format |
+| `_id` | string | Same as `id` |
 | `email` | string | User email address |
-| `givenName` | string? | First name (from profile) |
-| `familyName` | string? | Last name (from profile) |
-| `firstName` | string? | First name (legacy field) |
-| `lastName` | string? | Last name (legacy field) |
-| `createdAt` | ISO 8601 | Account creation date |
+| `givenName` | string? | First name |
+| `familyName` | string? | Last name |
+| `fullName` | string? | Full name |
+| `auth0IdForMixpanel` | string? | Internal analytics ID |
 
 ---
 
@@ -263,35 +261,37 @@ huntr me --json | jq 'keys'
 
 ## JSON Schema Examples
 
-### Complete Board with Jobs
+### Board (from `GET /user/boards`)
 
 ```json
 {
   "id": "68bf9e33f871e5004a5eb58e",
-  "_id": "507f1f77bcf86cd799439011",
-  "name": "My Job Search",
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-02-20T15:45:00Z",
-  "lists": [
-    {
-      "id": "list_1",
-      "_id": "507f1f77bcf86cd799439012",
-      "name": "Active Leads",
-      "order": 1
-    },
-    {
-      "id": "list_2",
-      "_id": "507f1f77bcf86cd799439013",
-      "name": "Interviewing",
-      "order": 2
-    },
-    {
-      "id": "list_3",
-      "_id": "507f1f77bcf86cd799439014",
-      "name": "Offers",
-      "order": 3
-    }
+  "_id": "68bf9e33f871e5004a5eb58e",
+  "name": "Job Search 2025",
+  "isArchived": false,
+  "createdAt": "2025-09-09T03:25:39.770Z",
+  "updatedAt": "2026-01-22T18:23:46.492Z",
+  "_lists": [
+    "68bf9e33f871e5004a5eb592",
+    "68bf9e33f871e5004a5eb593"
   ]
+}
+```
+
+### BoardList (from `GET /board/:id/lists`)
+
+```json
+{
+  "_id": "68bf9e33f871e5004a5eb593",
+  "id": "68bf9e33f871e5004a5eb593",
+  "name": "applied",
+  "_board": "68bf9e33f871e5004a5eb58e",
+  "_jobs": ["695ab63801de6a0051c0b03c"],
+  "stageType": "APPLY",
+  "suggestedActivityCategoryNames": ["Follow Up", "Reach Out"],
+  "createdAt": "2025-09-09T03:25:39.779Z",
+  "updatedAt": "2026-03-06T22:36:02.131Z",
+  "__v": 0
 }
 ```
 
@@ -299,31 +299,33 @@ huntr me --json | jq 'keys'
 
 ```json
 {
-  "_id": "507f1f77bcf86cd799439011",
-  "id": "job_001",
-  "title": "Senior Software Engineer",
-  "url": "https://example.com/jobs/engineer",
-  "rootDomain": "example.com",
-  "htmlDescription": "<p>We're looking for...</p>",
-  "_company": "company_1",
-  "_list": "list_2",
+  "_id": "695ab63801de6a0051c0b03c",
+  "id": "695ab63801de6a0051c0b03c",
+  "title": "Software Architect",
+  "url": "https://...",
+  "rootDomain": "icims.com",
+  "htmlDescription": "<p>...</p>",
+  "_company": "58bf62e1e281d9000c2a5cb8",
+  "_list": "68bf9e33f871e5004a5eb593",
   "_board": "68bf9e33f871e5004a5eb58e",
-  "_activities": ["action_1", "action_2", "action_3"],
-  "_notes": ["note_1"],
-  "salary": {
-    "min": 120000,
-    "max": 150000,
-    "currency": "USD"
-  },
+  "_activities": ["695ab63e36ff3901e24c45f0"],
+  "_interviewActivities": [],
+  "_contacts": [],
+  "_todos": [],
+  "_notes": [],
+  "salary": "$161,000.00 - $255,000.00",
   "location": {
-    "address": "San Francisco, CA",
-    "name": "San Francisco",
-    "lat": "37.7749",
-    "lng": "-122.4194"
+    "address": "Germantown, MD, USA",
+    "name": "Germantown",
+    "placeId": "ChIJ...",
+    "url": "https://maps.google.com/?cid=...",
+    "lat": "39.1731621",
+    "lng": "-77.2716502"
   },
-  "createdAt": "2024-01-20T14:15:00Z",
-  "updatedAt": "2024-02-15T10:00:00Z",
-  "lastMovedAt": "2024-02-18T09:30:00Z"
+  "createdAt": "2026-01-04T18:49:28.657Z",
+  "updatedAt": "2026-01-08T21:38:00.838Z",
+  "lastMovedAt": "2026-01-04T18:49:34.240Z",
+  "__v": 0
 }
 ```
 
