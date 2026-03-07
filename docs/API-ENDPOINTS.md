@@ -168,9 +168,7 @@ Returns a single job object (same shape as above, unwrapped from the `jobs` map)
 
 ### `GET /board/:boardId/actions`
 
-Returns activity log for a board as a **plain object map** keyed by action ID (no wrapper object).
-
-> **Note:** huntr-cli consumes this response directly as `Record<string, PersonalAction>` — it does not expect an `{ actions: {…}, nextPage }` envelope. If the live API ever returns a wrapper shape, `PersonalActionsApi.listByBoard()` would need to be updated accordingly.
+Returns activity log for a board as a **plain object map** keyed by action ID (no wrapper, no pagination cursor).
 
 **Response:**
 ```json
@@ -195,6 +193,8 @@ Returns activity log for a board as a **plain object map** keyed by action ID (n
   }
 }
 ```
+
+> **Note:** The response is a flat map with no `actions` wrapper and no `nextPage` cursor. Each key is an action ID and the value is the full action object.
 
 ---
 
