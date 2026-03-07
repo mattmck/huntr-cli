@@ -23,6 +23,7 @@ _huntr() {
   jobs_commands=(
     'list:List jobs on a board'
     'get:Get details for a specific job'
+    'stats:Show monthly job application statistics'
   )
 
   local -a activities_commands
@@ -114,6 +115,11 @@ _huntr() {
               case $line[1] in
                 list|get)
                   _arguments $format_opts
+                  ;;
+                stats)
+                  _arguments \
+                    $format_opts \
+                    '(--since)--since[Show stats from date onwards]:date:'
                   ;;
               esac
               ;;

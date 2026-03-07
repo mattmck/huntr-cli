@@ -2,6 +2,7 @@
 
 import { Command, InvalidArgumentError } from 'commander';
 import { HuntrPersonalApi } from './api/personal';
+import { BoardList } from './types/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
 import { captureSession, checkCdpSession } from './commands/capture-session';
@@ -247,7 +248,9 @@ boards
         const lists = board._lists.map(id => listsMap[id]).filter(Boolean);
         if (lists.length) {
           console.log('\nLists:');
-          lists.forEach(l => console.log(`  - ${l.name}`));
+          lists.forEach(l => {
+            console.log(`  - ${l.name}`);
+          });
         }
       }
     } catch (error) {
@@ -278,15 +281,16 @@ jobs
       const api = await getApi(command.parent?.parent?.opts().token);
 
       // Only fetch lists if not JSON output (skip unnecessary API call for JSON format)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [jobsList, listsMap] = await Promise.all([
         api.jobs.listByBoardFlat(boardId),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        format === 'json' ? Promise.resolve({} as Record<string, any>) : api.boards.listsByBoard(boardId),
+        format === 'json' ? Promise.resolve({} as Record<string, BoardList>) : api.boards.listsByBoard(boardId),
       ]);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const listNames = new Map(Object.values(listsMap).map((l: any) => [l.id, l.name]));
+      const listNames = new Map(
+        Object.values(listsMap)
+          .filter((l): l is BoardList => l != null)
+          .map((l) => [l.id, l.name]),
+      );
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
 
@@ -335,6 +339,136 @@ jobs
           console.log(`  Salary:   ${job.salary}`);
         }
         console.log(`  Created:  ${new Date(job.createdAt).toLocaleString()}`);
+      }
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+jobs
+  .command('stats')
+  .description('Show monthly job application statistics')
+  .argument('<board-id>', 'Board ID')
+  .option('-f, --format <format>', 'Output format: json | table | csv', parseFormatOption, 'json')
+  .option('-j, --json', 'Output as JSON (alias for --format json)')
+  .option('--since <date>', 'Show stats from YYYY-MM-DD onwards', parseDateOption)
+  .addHelpText(
+    'after',
+    `
+Examples:
+  # Show monthly stats for a board in JSON (default)
+  $ huntr jobs stats <board-id>
+
+  # Show stats in table format
+  $ huntr jobs stats <board-id> --format table
+
+  # Show stats from a specific date onwards
+  $ huntr jobs stats <board-id> --since 2025-01-01 --format table
+
+  # Export stats as CSV
+  $ huntr jobs stats <board-id> --format csv
+
+  # Explicit JSON output (same as --format json)
+  $ huntr jobs stats <board-id> --json
+`,
+  )
+  .action(async (boardId, options, command) => {
+    try {
+      const format = resolveOutputFormat(options);
+      const api = await getApi(command.parent?.parent?.opts().token);
+
+      // Fetch jobs and lists
+      const [jobsList, listsMap] = await Promise.all([
+        api.jobs.listByBoardFlat(boardId),
+        api.boards.listsByBoard(boardId),
+      ]);
+
+      // Group jobs by month of creation
+      const monthlyStats = new Map<string, { applied: number; rejected: number; noResponse: number }>();
+
+      for (const job of jobsList) {
+        const dt = new Date(job.createdAt);
+        const monthKey = dt.toISOString().substring(0, 7); // YYYY-MM
+
+        if (!monthlyStats.has(monthKey)) {
+          monthlyStats.set(monthKey, { applied: 0, rejected: 0, noResponse: 0 });
+        }
+
+        const stats = monthlyStats.get(monthKey)!;
+        stats.applied += 1;
+
+        // Check if job is in rejected list (use stageType if available, fall back to name)
+        const jobList = job._list ? listsMap[job._list] : undefined;
+        const isRejected = jobList?.stageType === 'REJECTED' || (jobList?.name?.toLowerCase() === 'rejected');
+        if (isRejected) {
+          stats.rejected += 1;
+        } else {
+          // No response = not rejected (includes applied, timeout, interview, offer)
+          stats.noResponse += 1;
+        }
+      }
+
+      // Sort by month
+      let sorted = Array.from(monthlyStats.entries()).sort();
+
+      // Filter by since date if provided
+      if (options.since) {
+        sorted = sorted.filter(([month]) => {
+          const monthStart = new Date(`${month}-01T00:00:00.000Z`);
+          return monthStart.getTime() >= options.since.getTime();
+        });
+      }
+
+      // Calculate totals
+      const totals = { applied: 0, rejected: 0, noResponse: 0 };
+      for (const [, stats] of sorted) {
+        totals.applied += stats.applied;
+        totals.rejected += stats.rejected;
+        totals.noResponse += stats.noResponse;
+      }
+
+      if (sorted.length === 0) {
+        if (format === 'json') {
+          console.log('[]');
+        } else {
+          console.log('No jobs found.');
+        }
+      } else if (format === 'json') {
+        const result = sorted.map(([month, stats]) => ({
+          month,
+          applied: stats.applied,
+          rejected: stats.rejected,
+          noResponse: stats.noResponse,
+        }));
+        result.push({
+          month: 'TOTAL',
+          applied: totals.applied,
+          rejected: totals.rejected,
+          noResponse: totals.noResponse,
+        });
+        console.log(JSON.stringify(result, null, 2));
+      } else if (format === 'csv') {
+        const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.noResponse]);
+        rows.push(['TOTAL', totals.applied, totals.rejected, totals.noResponse]);
+        printCsv(
+          ['month', 'applied', 'rejected', 'no_response'],
+          rows,
+        );
+      } else {
+        const rows = sorted.map(([month, stats]) => ({
+          Month: month,
+          Applied: stats.applied,
+          Rejected: stats.rejected,
+          'No Response': stats.noResponse,
+        }));
+        rows.push({
+          Month: 'TOTAL',
+          Applied: totals.applied,
+          Rejected: totals.rejected,
+          'No Response': totals.noResponse,
+        });
+        console.table(rows);
       }
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
@@ -678,7 +812,7 @@ _huntr_completions() {
 
   local top_commands="me boards jobs activities config login logout completions"
   local boards_commands="list get"
-  local jobs_commands="list get"
+  local jobs_commands="list get stats"
   local activities_commands="list week-csv"
   local config_commands="set-token capture-session check-cdp set-session test-session show-token clear-token clear-session"
 
@@ -727,7 +861,7 @@ _huntr() {
     'completions:Generate shell completion script'
   )
   boards_commands=('list:List all your boards' 'get:Get details of a specific board')
-  jobs_commands=('list:List jobs on a board' 'get:Get details of a specific job')
+  jobs_commands=('list:List jobs on a board' 'get:Get details of a specific job' 'stats:Show monthly job statistics')
   activities_commands=('list:List actions for a board' 'week-csv:Export last 7 days of activity as CSV')
   config_commands=(
     'set-token:Save API token'
@@ -791,8 +925,9 @@ complete -c huntr -n "__fish_seen_subcommand_from boards"     -a list -d "List a
 complete -c huntr -n "__fish_seen_subcommand_from boards"     -a get  -d "Get details of a specific board"
 
 # jobs subcommands
-complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a list -d "List jobs on a board"
-complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a get  -d "Get details of a specific job"
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a list  -d "List jobs on a board"
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a get   -d "Get details of a specific job"
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a stats -d "Show monthly job statistics"
 
 # activities subcommands
 complete -c huntr -n "__fish_seen_subcommand_from activities" -a list     -d "List actions for a board"

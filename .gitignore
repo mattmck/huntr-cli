@@ -6,3 +6,4 @@ dist/
 out
 resumes_response.json
 resume_reviews.json
+.serena/
