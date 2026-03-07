@@ -118,7 +118,7 @@ _huntr() {
                   ;;
                 stats)
                   _arguments \
-                    $format_opts \
+                    '(-f --format)'{-f,--format}'[Output format]:format:(json table csv)' \
                     '(-j --json)'{-j,--json}'[Output as JSON]' \
                     '(--since)--since[Show stats from date (YYYY-MM-DD)]:date:'
                   ;;
