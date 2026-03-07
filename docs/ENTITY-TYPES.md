@@ -126,8 +126,8 @@ This document shows the complete structure of each entity type returned by huntr
 
 > Note: The current TypeScript definitions in `src/types/personal.ts` still model the legacy
 > `lists: BoardList[]` / `order` shape and have not yet been updated to this `_lists`-based
-> API. See the comments in `src/types/personal.ts` and the associated tracking issue for
-> progress on aligning the generated types with this documented response.
+> API. See the `Board.lists` and `BoardList.order` definitions in `src/types/personal.ts` and
+> the associated tracking issue for progress on aligning the generated types with this documented response.
 
 ### BoardList
 
