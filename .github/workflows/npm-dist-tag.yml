@@ -1,0 +1,45 @@
+name: npm Dist Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Published package version to retag (e.g., 1.4.0)'
+        required: true
+        type: string
+      dist_tag:
+        description: 'Dist-tag to update'
+        required: true
+        default: latest
+        type: choice
+        options:
+          - latest
+          - beta
+          - next
+          - rc
+
+jobs:
+  retag:
+    name: Update npm dist-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Validate version
+        run: |
+          if ! [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "Invalid version: ${{ github.event.inputs.version }}"
+            exit 1
+          fi
+
+      - name: Set dist-tag
+        run: npm dist-tag add "huntr-cli@${{ github.event.inputs.version }}" "${{ github.event.inputs.dist_tag }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Show dist-tags
+        run: npm dist-tag ls huntr-cli
