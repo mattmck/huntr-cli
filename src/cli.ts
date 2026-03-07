@@ -423,19 +423,23 @@ Examples:
       }
 
       if (format === 'json') {
-        const result = sorted.map(([month, stats]) => ({
-          month,
-          applied: stats.applied,
-          rejected: stats.rejected,
-          noResponse: stats.noResponse,
-        }));
-        result.push({
-          month: 'TOTAL',
-          applied: totals.applied,
-          rejected: totals.rejected,
-          noResponse: totals.noResponse,
-        });
-        console.log(JSON.stringify(result, null, 2));
+        if (sorted.length === 0) {
+          console.log(JSON.stringify([], null, 2));
+        } else {
+          const result = sorted.map(([month, stats]) => ({
+            month,
+            applied: stats.applied,
+            rejected: stats.rejected,
+            noResponse: stats.noResponse,
+          }));
+          result.push({
+            month: 'TOTAL',
+            applied: totals.applied,
+            rejected: totals.rejected,
+            noResponse: totals.noResponse,
+          });
+          console.log(JSON.stringify(result, null, 2));
+        }
       } else if (sorted.length === 0) {
         console.log('No jobs found.');
       } else if (format === 'csv') {
