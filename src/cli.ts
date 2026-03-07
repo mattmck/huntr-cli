@@ -381,7 +381,7 @@ Examples:
       ]);
 
       // Group jobs by month of creation
-      const monthlyStats = new Map<string, { applied: number; rejected: number; noResponse: number }>();
+      const monthlyStats = new Map<string, { applied: number; rejected: number; other: number }>();
 
       for (const job of jobsList) {
         const dt = new Date(job.createdAt);
@@ -393,7 +393,7 @@ Examples:
         const monthKey = dt.toISOString().substring(0, 7); // YYYY-MM
 
         if (!monthlyStats.has(monthKey)) {
-          monthlyStats.set(monthKey, { applied: 0, rejected: 0, noResponse: 0 });
+          monthlyStats.set(monthKey, { applied: 0, rejected: 0, other: 0 });
         }
 
         const stats = monthlyStats.get(monthKey)!;
@@ -405,8 +405,8 @@ Examples:
         if (isRejected) {
           stats.rejected += 1;
         } else {
-          // No response = not rejected (includes applied, timeout, interview, offer)
-          stats.noResponse += 1;
+          // Other = not rejected (includes applied, timeout, interview, offer, custom lists)
+          stats.other += 1;
         }
       }
 
@@ -422,11 +422,11 @@ Examples:
       }
 
       // Calculate totals
-      const totals = { applied: 0, rejected: 0, noResponse: 0 };
+      const totals = { applied: 0, rejected: 0, other: 0 };
       for (const [, stats] of sorted) {
         totals.applied += stats.applied;
         totals.rejected += stats.rejected;
-        totals.noResponse += stats.noResponse;
+        totals.other += stats.other;
       }
 
       if (sorted.length === 0) {
@@ -440,20 +440,20 @@ Examples:
           month,
           applied: stats.applied,
           rejected: stats.rejected,
-          noResponse: stats.noResponse,
+          other: stats.other,
         }));
         result.push({
           month: 'TOTAL',
           applied: totals.applied,
           rejected: totals.rejected,
-          noResponse: totals.noResponse,
+          other: totals.other,
         });
         console.log(JSON.stringify(result, null, 2));
       } else if (format === 'csv') {
-        const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.noResponse]);
-        rows.push(['TOTAL', totals.applied, totals.rejected, totals.noResponse]);
+        const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.other]);
+        rows.push(['TOTAL', totals.applied, totals.rejected, totals.other]);
         printCsv(
-          ['month', 'applied', 'rejected', 'no_response'],
+          ['month', 'applied', 'rejected', 'other'],
           rows,
         );
       } else {
@@ -461,13 +461,13 @@ Examples:
           Month: month,
           Applied: stats.applied,
           Rejected: stats.rejected,
-          'No Response': stats.noResponse,
+          Other: stats.other,
         }));
         rows.push({
           Month: 'TOTAL',
           Applied: totals.applied,
           Rejected: totals.rejected,
-          'No Response': totals.noResponse,
+          Other: totals.other,
         });
         console.table(rows);
       }
