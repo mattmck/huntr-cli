@@ -22,7 +22,7 @@ Returns the authenticated user's profile.
   "givenName": "<givenName>",
   "familyName": "<familyName>",
   "fullName": "<fullName>",
-  "auth0IdForMixpanel": "<userId>",
+  "auth0IdForMixpanel": "<auth0IdForMixpanel>",
   "id": "<userId>"
 }
 ```
