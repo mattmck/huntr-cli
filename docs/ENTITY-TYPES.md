@@ -224,6 +224,7 @@ Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 | `fullName` | string? | Full name |
 | `auth0IdForMixpanel` | string? | Internal analytics ID |
 
+> Note: The `UserProfile` TypeScript interface in `src/types/personal.ts` is currently out of date with this schema. It still uses legacy `firstName`/`lastName` fields and a required `createdAt`, and does **not** yet include `fullName` or `auth0IdForMixpanel`. Update the interface before relying on these fields in typed code.
 ---
 
 ## Action Types
