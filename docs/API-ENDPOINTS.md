@@ -206,8 +206,7 @@ The following paths return an HTML page (the Huntr SPA) rather than JSON. They a
 | Path | Notes |
 |------|-------|
 | `GET /boards` | Returns HTML |
-| `GET /boards/:id` | Returns HTML — used incorrectly in `PersonalBoardsApi.get()` |
-| `GET /board/:id` | Returns HTML |
+| `GET /boards/:id` | Returns HTML — returns SPA instead of JSON |
 | `GET /list/:id` | Returns HTML |
 | `GET /lists/:id` | Returns HTML |
 | `GET /board/:id/list/:listId` | Returns HTML |

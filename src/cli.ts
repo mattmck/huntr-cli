@@ -237,12 +237,14 @@ boards
         api.boards.listsByBoard(boardId),
       ]);
       if (options.json) {
-        console.log(JSON.stringify({ ...board, lists: Object.values(listsMap) }, null, 2));
+        // Preserve board list order using board._lists IDs
+        const lists = board._lists.map(id => listsMap[id]).filter(Boolean);
+        console.log(JSON.stringify({ ...board, lists }, null, 2));
       } else {
         console.log(`Board: ${board.name}`);
         console.log(`ID: ${board.id}`);
         console.log(`Created: ${new Date(board.createdAt).toLocaleString()}`);
-        const lists = Object.values(listsMap);
+        const lists = board._lists.map(id => listsMap[id]).filter(Boolean);
         if (lists.length) {
           console.log('\nLists:');
           lists.forEach(l => console.log(`  - ${l.name}`));
@@ -274,11 +276,17 @@ jobs
       const range = resolveDateRange(options);
 
       const api = await getApi(command.parent?.parent?.opts().token);
+
+      // Only fetch lists if not JSON output (skip unnecessary API call for JSON format)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [jobsList, listsMap] = await Promise.all([
         api.jobs.listByBoardFlat(boardId),
-        api.boards.listsByBoard(boardId),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        format === 'json' ? Promise.resolve({} as Record<string, any>) : api.boards.listsByBoard(boardId),
       ]);
-      const listNames = new Map(Object.values(listsMap).map(l => [l.id, l.name]));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const listNames = new Map(Object.values(listsMap).map((l: any) => [l.id, l.name]));
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
 

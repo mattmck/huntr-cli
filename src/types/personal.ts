@@ -6,7 +6,8 @@ export interface Board {
   name?: string;
   createdAt: string;
   updatedAt?: string;
-  _lists?: string[];
+  isArchived: boolean;
+  _lists: string[];
 }
 
 export interface BoardList {
