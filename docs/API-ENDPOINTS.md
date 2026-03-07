@@ -113,7 +113,7 @@ Custom user-created lists have `stageType: null`.
 
 ### `GET /board/:boardId/jobs`
 
-Returns all jobs for a board as an **object map** keyed by job ID.
+Returns a wrapper object with a `jobs` property containing all jobs for a board as an **object map** keyed by job ID (i.e. `{ "jobs": { "<jobId>": Job } }`).
 
 **Response:**
 ```json
