@@ -123,6 +123,10 @@ This document shows the complete structure of each entity type returned by huntr
 | `_lists` | string[] | Array of bare list IDs — resolve via `GET /board/:id/lists` |
 | `isArchived` | boolean | Whether board is archived |
 
+> Note: The current TypeScript definitions in `src/types/personal.ts` still model the legacy
+> `lists: BoardList[]` / `order` shape and have not yet been updated to this `_lists`-based
+> API. See the comments in `src/types/personal.ts` and the associated tracking issue for
+> progress on aligning the generated types with this documented response.
 > **Note:** The current TypeScript definitions in `src/types/personal.ts` still model the legacy
 > `lists: BoardList[]` / `order` shape and have not yet been updated to this `_lists`-based
 > API. See the comments in `src/types/personal.ts` and the associated tracking issue for
