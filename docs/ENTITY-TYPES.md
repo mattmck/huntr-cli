@@ -17,7 +17,7 @@ This document shows the complete structure of each entity type returned by huntr
   _lists: [
     "<listId1>",
     "<listId2>"
-  ]  // bare list IDs — use GET /board/:id/lists to resolve names
+  ]  // bare list IDs — use GET /board/:boardId/lists to resolve names
 }
 ```
 
