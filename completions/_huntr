@@ -23,7 +23,7 @@ _huntr() {
   jobs_commands=(
     'list:List jobs on a board'
     'get:Get details for a specific job'
-    'stats:Show monthly job application statistics'
+    'stats:Show monthly application statistics for a board'
   )
 
   local -a activities_commands
@@ -118,8 +118,9 @@ _huntr() {
                   ;;
                 stats)
                   _arguments \
-                    $format_opts \
-                    '(--since)--since[Show stats from date onwards]:date:'
+                    '(-f --format)'{-f,--format}'[Output format]:format:(json table csv)' \
+                    '(-j --json)'{-j,--json}'[Output as JSON]' \
+                    '(--since)--since[Show stats from date (YYYY-MM-DD)]:date:'
                   ;;
               esac
               ;;
