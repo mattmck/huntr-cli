@@ -27,6 +27,7 @@ Returns the authenticated user's profile.
 }
 ```
 
+> **Note:** The TypeScript `UserProfile` type in `src/types/personal.ts` is currently out of sync with this raw `/user` response shape: it requires a `createdAt` field and does not model `fullName` or `auth0IdForMixpanel`. Callers should either adapt the raw response to `UserProfile` or handle the raw shape directly.
 ---
 
 ### `GET /user/boards`
