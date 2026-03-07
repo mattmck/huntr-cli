@@ -11,6 +11,7 @@ This document shows the complete structure of each entity type returned by huntr
   id: "<boardId>",
   _id: "<boardId>",
   name: "Job Search 2025",
+  isArchived: false,
   createdAt: "2025-09-09T03:25:39.770Z",
   updatedAt: "2026-01-22T18:23:46.492Z",
   _lists: [
@@ -172,6 +173,8 @@ Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 ### Salary
 
 > **Note:** `salary` is returned as a raw string by the API (e.g. `"$161,000.00 - $255,000.00"`). The TypeScript type `PersonalJob.salary` currently models it as a structured object — this is inaccurate and tracked in [issue #20](https://github.com/mattmck/huntr-cli/issues/20).
+>
+> **Warning:** The CLI currently dereferences `job.salary.min`, `job.salary.max`, and `job.salary.currency` in [`src/cli.ts`](../src/cli.ts), so runtime behavior does not match the API's raw salary string. Until the API/type mismatch is normalized, either parse the raw salary string in the CLI or avoid nested salary property access.
 
 ### Location
 
@@ -265,6 +268,12 @@ huntr activities list <board-id> --format json | jq '.[0] | keys'
 huntr me --json | jq 'keys'
 # Output: ["id", "_id", "email", "givenName", "familyName", ...]
 ```
+
+> **Note on `huntr boards get`:** This command is currently broken in the direct-fetch path. The CLI command `huntr boards get` calls [`PersonalBoardsApi.get`](../src/api/personal/boards.ts), which requests `/boards/:id`; per [API-ENDPOINTS.md](./API-ENDPOINTS.md), that route returns HTML while the canonical JSON board endpoint is `GET /user/boards`.
+>
+> There is currently no compatibility layer in the codebase that converts that HTML response into JSON.
+>
+> **TODO:** Update `PersonalBoardsApi.get` so `huntr boards get` resolves boards via `GET /user/boards` (or another confirmed JSON endpoint) and behaves consistently with `API-ENDPOINTS.md`.
 
 ---
 
