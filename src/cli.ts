@@ -410,8 +410,10 @@ Examples:
         }
       }
 
-      // Sort by month
-      let sorted = Array.from(monthlyStats.entries()).sort();
+      // Sort by month (keys are YYYY-MM, so lexicographical order matches chronological)
+      let sorted = Array.from(monthlyStats.entries()).sort(
+        ([monthA], [monthB]) => monthA.localeCompare(monthB),
+      );
 
       // Filter by since date if provided
       if (options.since) {
