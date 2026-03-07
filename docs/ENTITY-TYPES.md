@@ -268,15 +268,15 @@ huntr me --json | jq 'keys'
 
 > **Note on `huntr boards get`:** This command is currently broken in the direct-fetch path and should be considered **non-functional** for JSON output. The CLI command `huntr boards get` calls [`PersonalBoardsApi.get`](../src/api/personal/boards.ts), which requests `/boards/:id`; per [API-ENDPOINTS.md](./API-ENDPOINTS.md), that route returns HTML while the canonical JSON board endpoint is `GET /user/boards`.
 >
-> There is currently no compatibility layer in the codebase that converts that HTML response into JSON. Until this is fixed, do **not** use `huntr boards get ... --json` for programmatic consumption, even if you see it mentioned in older examples or external snippets.
+> There is currently no compatibility layer in the codebase that converts that HTML response into JSON. Until this is fixed, do **not** use `huntr boards get ... --json` for programmatic consumption. This applies to **any** `huntr boards get` usages you might see in this document (for example, in schema/`jq` examples) or in older external snippets — treat those as legacy and replace them with the pattern shown below.
 >
-> For real, working usage when you need board JSON, prefer a command such as:
+> For real, working usage when you need board JSON (including when inspecting schemas with `jq`), prefer a command such as:
 >
 > ```bash
 > huntr boards list --json | jq '.[0] | keys'
 > ```
 >
-> **TODO:** Update `PersonalBoardsApi.get` so `huntr boards get` resolves boards via `GET /user/boards` (or another confirmed JSON endpoint) and behaves consistently with `API-ENDPOINTS.md`. Once that is implemented, this note and any remaining workarounds can be revised to show `huntr boards get` examples again.
+> **TODO:** Update `PersonalBoardsApi.get` so `huntr boards get` resolves boards via `GET /user/boards` (or another confirmed JSON endpoint) and behaves consistently with `API-ENDPOINTS.md`. Once that is implemented, this note and any remaining workarounds can be revised to show `huntr boards get` examples again, and the schema/querying examples in this document can be updated back to `huntr boards get`.
 
 ---
 
