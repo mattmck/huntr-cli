@@ -385,11 +385,8 @@ Examples:
 
       for (const job of jobsList) {
         const dt = new Date(job.createdAt);
-        if (Number.isNaN(dt.getTime())) {
-          // Skip jobs with invalid creation dates to avoid crashing stats generation
-          continue;
-        }
-        if (Number.isNaN(dt.getTime())) {
+        const ts = dt.getTime();
+        if (Number.isNaN(ts)) {
           // Skip jobs with invalid creation dates to avoid crashing stats generation
           continue;
         }
