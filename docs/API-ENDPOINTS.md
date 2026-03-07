@@ -32,14 +32,14 @@ Returns the authenticated user's profile.
 
 ### `GET /user/boards`
 
-Returns all boards for the authenticated user. The raw backend for this endpoint may return different shapes; `huntr-cli` normalizes them all into a **`Board[]` array** (see `PersonalBoardsApi.list()` in `src/api/personal/boards.ts`).
+Returns all boards for the authenticated user. The raw backend for this endpoint may return different shapes, so callers **must not** rely on a single raw response shape. `huntr-cli` normalizes all variants into a **`Board[]` array** (see `PersonalBoardsApi.list()` in `src/api/personal/boards.ts`).
 
 Observed raw response variants (before normalization):
 - An array of board objects: `[ { ...board }, { ...board }, ... ]`.
-- An object with a `data` property containing an array of boards: `{ "data": [ { ...board }, ... ] }`.
+- An object with a `data` property containing an array: `{ "data": [ { ...board }, ... ] }`.
 - An object map keyed by board ID: `{ "<boardId>": { ...board }, ... }`.
 
-**Normalized response shape returned by `PersonalBoardsApi.list()` (a `Board[]` array):**
+**Normalized response shape returned by `huntr-cli` callers (`Board[]`):**
 ```json
 [
   {
