@@ -814,7 +814,7 @@ _huntr_completions() {
   local top_commands="me boards jobs activities config login logout completions"
   local boards_commands="list get"
   local jobs_commands="list get stats"
-  local jobs_stats_flags="--format --json --since"
+  local jobs_stats_flags="--format -f --json -j --since"
   local activities_commands="list week-csv"
   local config_commands="set-token capture-session check-cdp set-session test-session show-token clear-token clear-session"
 
@@ -894,8 +894,8 @@ _huntr() {
         jobs)
           if [[ "\${words[3]}" == "stats" ]]; then
             _values 'jobs stats option' \\
-              '--format[Output format: json | table | csv]:format:(json table csv)' \\
-              '--json[Output as JSON (alias for --format json)]' \\
+              '(-f --format)'{-f,--format}'[Output format: json | table | csv]:format:(json table csv)' \\
+              '(-j --json)'{-j,--json}'[Output as JSON (alias for --format json)]' \\
               '--since[Show stats from YYYY-MM-DD onwards]:date:'
           else
             _describe 'jobs command' jobs_commands
