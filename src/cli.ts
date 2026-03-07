@@ -247,7 +247,9 @@ boards
         const lists = board._lists.map(id => listsMap[id]).filter(Boolean);
         if (lists.length) {
           console.log('\nLists:');
-          lists.forEach(l => console.log(`  - ${l.name}`));
+          lists.forEach(l => {
+            console.log(`  - ${l.name}`);
+          });
         }
       }
     } catch (error) {
@@ -278,15 +280,17 @@ jobs
       const api = await getApi(command.parent?.parent?.opts().token);
 
       // Only fetch lists if not JSON output (skip unnecessary API call for JSON format)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [jobsList, listsMap] = await Promise.all([
         api.jobs.listByBoardFlat(boardId),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        format === 'json' ? Promise.resolve({} as Record<string, any>) : api.boards.listsByBoard(boardId),
+        format === 'json' ? Promise.resolve({}) : api.boards.listsByBoard(boardId),
       ]);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const listNames = new Map(Object.values(listsMap).map((l: any) => [l.id, l.name]));
+      const listNames = new Map(
+        Object.values(listsMap)
+          .filter((l) => l && typeof l === 'object' && 'id' in l && 'name' in l)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((l) => [(l as any).id, (l as any).name]),
+      );
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
 
@@ -348,22 +352,17 @@ jobs
   .argument('<board-id>', 'Board ID')
   .option('-f, --format <format>', 'Output format: json | table | csv', parseFormatOption, 'json')
   .option('-j, --json', 'Output as JSON (alias for --format json)')
-  .option('--since <date>', 'Show stats from YYYY-MM onwards', parseDateOption)
+  .option('--since <date>', 'Show stats from YYYY-MM-DD onwards', parseDateOption)
   .action(async (boardId, options, command) => {
     try {
       const format = resolveOutputFormat(options);
       const api = await getApi(command.parent?.parent?.opts().token);
 
       // Fetch jobs and lists
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [jobsList, listsMap] = await Promise.all([
         api.jobs.listByBoardFlat(boardId),
         api.boards.listsByBoard(boardId),
       ]);
-
-      // Build a map of list IDs to list names
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const listNames = new Map(Object.values(listsMap).map((l: any) => [l.id, l.name]));
 
       // Group jobs by month of creation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -380,9 +379,10 @@ jobs
         const stats = monthlyStats.get(monthKey)!;
         stats.applied += 1;
 
-        // Check if job is in rejected list
-        const jobListName = job._list ? (listNames.get(job._list) ?? '') : '';
-        if (jobListName.toLowerCase() === 'rejected') {
+        // Check if job is in rejected list (use stageType if available, fall back to name)
+        const jobList = job._list ? listsMap[job._list] : undefined;
+        const isRejected = jobList?.stageType === 'REJECTED' || (jobList?.name?.toLowerCase() === 'rejected');
+        if (isRejected) {
           stats.rejected += 1;
         } else {
           // No response = not rejected (includes applied, timeout, interview, offer)
@@ -395,8 +395,10 @@ jobs
 
       // Filter by since date if provided
       if (options.since) {
-        const sinceMonth = options.since.toISOString().substring(0, 7);
-        sorted = sorted.filter(([month]) => month >= sinceMonth);
+        sorted = sorted.filter(([month]) => {
+          const monthStart = new Date(`${month}-01T00:00:00.000Z`);
+          return monthStart.getTime() >= options.since.getTime();
+        });
       }
 
       // Calculate totals
@@ -787,7 +789,7 @@ _huntr_completions() {
 
   local top_commands="me boards jobs activities config login logout completions"
   local boards_commands="list get"
-  local jobs_commands="list get"
+  local jobs_commands="list get stats"
   local activities_commands="list week-csv"
   local config_commands="set-token capture-session check-cdp set-session test-session show-token clear-token clear-session"
 
@@ -836,7 +838,7 @@ _huntr() {
     'completions:Generate shell completion script'
   )
   boards_commands=('list:List all your boards' 'get:Get details of a specific board')
-  jobs_commands=('list:List jobs on a board' 'get:Get details of a specific job')
+  jobs_commands=('list:List jobs on a board' 'get:Get details of a specific job' 'stats:Show monthly job statistics')
   activities_commands=('list:List actions for a board' 'week-csv:Export last 7 days of activity as CSV')
   config_commands=(
     'set-token:Save API token'
@@ -900,8 +902,9 @@ complete -c huntr -n "__fish_seen_subcommand_from boards"     -a list -d "List a
 complete -c huntr -n "__fish_seen_subcommand_from boards"     -a get  -d "Get details of a specific board"
 
 # jobs subcommands
-complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a list -d "List jobs on a board"
-complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a get  -d "Get details of a specific job"
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a list  -d "List jobs on a board"
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a get   -d "Get details of a specific job"
+complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a stats -d "Show monthly job statistics"
 
 # activities subcommands
 complete -c huntr -n "__fish_seen_subcommand_from activities" -a list     -d "List actions for a board"
