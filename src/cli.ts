@@ -286,11 +286,7 @@ jobs
         format === 'json' ? Promise.resolve({} as Record<string, BoardList>) : api.boards.listsByBoard(boardId),
       ]);
 
-      const listNames = new Map(
-        Object.values(listsMap)
-          .filter((l): l is BoardList => l != null)
-          .map((l) => [l.id, l.name]),
-      );
+      const listNames = new Map(Object.values(listsMap).map((l) => [l.id, l.name]));
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
 
@@ -389,6 +385,10 @@ Examples:
 
       for (const job of jobsList) {
         const dt = new Date(job.createdAt);
+        if (Number.isNaN(dt.getTime())) {
+          // Skip jobs with invalid creation dates to avoid crashing stats generation
+          continue;
+        }
         const monthKey = dt.toISOString().substring(0, 7); // YYYY-MM
 
         if (!monthlyStats.has(monthKey)) {
@@ -414,10 +414,8 @@ Examples:
 
       // Filter by since date if provided
       if (options.since) {
-        sorted = sorted.filter(([month]) => {
-          const monthStart = new Date(`${month}-01T00:00:00.000Z`);
-          return monthStart.getTime() >= options.since.getTime();
-        });
+        const sinceMonthKey = options.since.toISOString().substring(0, 7); // YYYY-MM
+        sorted = sorted.filter(([month]) => month >= sinceMonthKey);
       }
 
       // Calculate totals
