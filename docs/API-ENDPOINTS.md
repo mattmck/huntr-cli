@@ -31,9 +31,14 @@ Returns the authenticated user's profile.
 
 ### `GET /user/boards`
 
-Returns all boards for the authenticated user as an **object map** keyed by board ID.
+Returns all boards for the authenticated user. The raw backend has historically returned multiple shapes for this endpoint, and `huntr-cli` normalizes them into an **object map** keyed by board ID.
 
-**Response:**
+Observed raw response variants:
+- An object map keyed by board ID (see normalized shape below).
+- An array of board objects: `[ { ...board }, { ...board }, ... ]`.
+- An object with a `data` property containing an array of boards: `{ "data": [ { ...board }, ... ] }`.
+
+**Normalized response (as seen by huntr-cli callers):**
 ```json
 {
   "<boardId>": {
