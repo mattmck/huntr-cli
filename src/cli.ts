@@ -6,11 +6,7 @@ import { BoardList } from './types/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
 import { captureSession, checkCdpSession } from './commands/capture-session';
-import {
-  formatCsvWithFields,
-  formatJsonWithFields,
-  formatTableWithFields,
-} from './lib/list-options';
+
 import { version } from '../package.json';
 
 const program = new Command();
@@ -388,7 +384,7 @@ Examples:
       ]);
 
       // Group jobs by month of creation
-      const monthlyStats = new Map<string, { applied: number; rejected: number; noResponse: number }>();
+      const monthlyStats = new Map<string, { applied: number; rejected: number; other: number }>();
 
       for (const job of jobsList) {
         const dt = new Date(job.createdAt);
@@ -400,7 +396,7 @@ Examples:
         const monthKey = dt.toISOString().substring(0, 7); // YYYY-MM
 
         if (!monthlyStats.has(monthKey)) {
-          monthlyStats.set(monthKey, { applied: 0, rejected: 0, noResponse: 0 });
+          monthlyStats.set(monthKey, { applied: 0, rejected: 0, other: 0 });
         }
 
         const stats = monthlyStats.get(monthKey)!;
@@ -412,8 +408,8 @@ Examples:
         if (isRejected) {
           stats.rejected += 1;
         } else {
-          // No response = not rejected (includes applied, timeout, interview, offer)
-          stats.noResponse += 1;
+          // Other = everything not rejected (e.g. wishlist, apply, interview/on-site, offer, timeout, and custom lists)
+          stats.other += 1;
         }
       }
 
@@ -429,42 +425,55 @@ Examples:
       }
 
       // Calculate totals
-      const totals = { applied: 0, rejected: 0, noResponse: 0 };
+      const totals = { applied: 0, rejected: 0, other: 0 };
       for (const [, stats] of sorted) {
         totals.applied += stats.applied;
         totals.rejected += stats.rejected;
-        totals.noResponse += stats.noResponse;
+        totals.other += stats.other;
       }
 
-      const fields = ['month', 'applied', 'rejected', 'noResponse'];
-      const result = sorted.map(([month, stats]) => ({
-        month,
-        applied: stats.applied,
-        rejected: stats.rejected,
-        noResponse: stats.noResponse,
-      }));
-
-      if (result.length > 0) {
+      if (sorted.length === 0) {
+        if (format === 'json') {
+          console.log('[]');
+        } else {
+          console.log('No jobs found.');
+        }
+        return;
+      } else if (format === 'json') {
+        const result = sorted.map(([month, stats]) => ({
+          month,
+          applied: stats.applied,
+          rejected: stats.rejected,
+          other: stats.other,
+        }));
         result.push({
           month: 'TOTAL',
           applied: totals.applied,
           rejected: totals.rejected,
-          noResponse: totals.noResponse,
+          other: totals.other,
         });
-      }
-
-      if (result.length === 0) {
-        if (format === 'json') {
-          console.log(formatJsonWithFields(result, fields));
-        } else {
-          console.log('No jobs found.');
-        }
-      } else if (format === 'json') {
-        console.log(formatJsonWithFields(result, fields));
+        console.log(JSON.stringify(result, null, 2));
       } else if (format === 'csv') {
-        console.log(formatCsvWithFields(result, fields));
+        const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.other]);
+        rows.push(['TOTAL', totals.applied, totals.rejected, totals.other]);
+        printCsv(
+          ['month', 'applied', 'rejected', 'other'],
+          rows,
+        );
       } else {
-        console.log(formatTableWithFields(result, fields));
+        const rows = sorted.map(([month, stats]) => ({
+          Month: month,
+          Applied: stats.applied,
+          Rejected: stats.rejected,
+          Other: stats.other,
+        }));
+        rows.push({
+          Month: 'TOTAL',
+          Applied: totals.applied,
+          Rejected: totals.rejected,
+          Other: totals.other,
+        });
+        console.table(rows);
       }
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
