@@ -170,7 +170,7 @@ Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 
 > **Note:** `salary` is returned as a raw string by the API (e.g. `"$161,000.00 - $255,000.00"`). The TypeScript type `PersonalJob.salary` currently models it as a structured object — this is inaccurate and tracked in [issue #20](https://github.com/mattmck/huntr-cli/issues/20).
 >
-> **Warning:** The CLI currently dereferences `job.salary.min`, `job.salary.max`, and `job.salary.currency` in [`src/cli.ts`](../src/cli.ts). Because the API returns `salary` as a raw string, this can throw at runtime when that code path executes. Mitigate by changing `PersonalJob.salary` to `string` (or `string | undefined`) and parsing explicitly, or by guarding/null-checking before nested property access until the API/type model is normalized.
+> **Warning:** The CLI currently dereferences `job.salary.min`, `job.salary.max`, and `job.salary.currency` in [`src/cli.ts`](../src/cli.ts) as if `salary` were a structured object. Because the API actually returns `salary` as a raw string, these nested property lookups evaluate to `undefined`, which can cause the salary to be displayed incorrectly (for example, as `N/A`) rather than reflecting the raw value. Mitigate by changing `PersonalJob.salary` to `string` (or `string | undefined`) and updating the CLI to parse and render the string value explicitly, or by aligning the API and type model so that `salary` is genuinely structured.
 
 ### Location
 
