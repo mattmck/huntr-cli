@@ -10,7 +10,7 @@ class FakeClient {
     if (path === '/user/boards') return [{ id: 'b1', _id: 'b1', name: 'Board', createdAt: new Date().toISOString() }];
     if (path === '/user') return { id: 'u1', email: 'user@example.com', createdAt: new Date().toISOString() };
     if (path === '/board/b1') return { id: 'b1', _id: 'b1', name: 'Board', isArchived: false, _lists: ['l1'], createdAt: new Date().toISOString() };
-    if (path === '/board/b1/lists') return { l1: { id: 'l1', _id: 'l1', name: 'To Apply', _board: 'b1', _jobs: [], stageType: 'TODO', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } };
+    if (path === '/board/b1/lists') return { l1: { id: 'l1', _id: 'l1', name: 'To Apply', _board: 'b1', _jobs: [], stageType: 'APPLY', suggestedActivityCategoryNames: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } };
     return {};
   }
 }
