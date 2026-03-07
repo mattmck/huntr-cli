@@ -365,7 +365,6 @@ jobs
       ]);
 
       // Group jobs by month of creation
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const monthlyStats = new Map<string, { applied: number; rejected: number; noResponse: number }>();
 
       for (const job of jobsList) {
