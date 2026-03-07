@@ -2,6 +2,7 @@
 
 import { Command, InvalidArgumentError } from 'commander';
 import { HuntrPersonalApi } from './api/personal';
+import { BoardList } from './types/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
 import { captureSession, checkCdpSession } from './commands/capture-session';
@@ -282,14 +283,13 @@ jobs
       // Only fetch lists if not JSON output (skip unnecessary API call for JSON format)
       const [jobsList, listsMap] = await Promise.all([
         api.jobs.listByBoardFlat(boardId),
-        format === 'json' ? Promise.resolve({}) : api.boards.listsByBoard(boardId),
+        format === 'json' ? Promise.resolve({} as Record<string, BoardList>) : api.boards.listsByBoard(boardId),
       ]);
 
       const listNames = new Map(
         Object.values(listsMap)
-          .filter((l) => l && typeof l === 'object' && 'id' in l && 'name' in l)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((l) => [(l as any).id, (l as any).name]),
+          .filter((l): l is BoardList => l != null)
+          .map((l) => [l.id, l.name]),
       );
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
@@ -357,14 +357,20 @@ jobs
     'after',
     `
 Examples:
- # Show monthly stats for a board in JSON (default)
- $ huntr jobs stats <board-id>
+  # Show monthly stats for a board in JSON (default)
+  $ huntr jobs stats <board-id>
 
- # Show stats from a specific date in table format
- $ huntr jobs stats <board-id> --since 2024-01-01 --format table
+  # Show stats in table format
+  $ huntr jobs stats <board-id> --format table
 
- # Explicit JSON output (same as --format json)
- $ huntr jobs stats <board-id> --json
+  # Show stats from a specific date onwards
+  $ huntr jobs stats <board-id> --since 2025-01-01 --format table
+
+  # Export stats as CSV
+  $ huntr jobs stats <board-id> --format csv
+
+  # Explicit JSON output (same as --format json)
+  $ huntr jobs stats <board-id> --json
 `,
   )
   .action(async (boardId, options, command) => {
@@ -424,7 +430,7 @@ Examples:
 
       if (sorted.length === 0) {
         if (format === 'json') {
-          console.log(JSON.stringify([], null, 2));
+          console.log('[]');
         } else {
           console.log('No jobs found.');
         }
