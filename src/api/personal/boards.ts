@@ -1,5 +1,5 @@
 import { HuntrApiClient } from '../client';
-import { Board } from '../../types/personal';
+import { Board, BoardList } from '../../types/personal';
 
 export class PersonalBoardsApi {
   constructor(private client: HuntrApiClient) {}
@@ -15,7 +15,11 @@ export class PersonalBoardsApi {
   }
 
   async get(boardId: string): Promise<Board> {
-    // There isn't a documented /api/user/boards/:id; use /api/boards/:id if needed
-    return this.client.get<Board>(`/boards/${boardId}`);
+    return this.client.get<Board>(`/board/${boardId}`);
+  }
+
+  // Returns a map of { [listId]: BoardList } for the given board
+  async listsByBoard(boardId: string): Promise<Record<string, BoardList>> {
+    return this.client.get<Record<string, BoardList>>(`/board/${boardId}/lists`);
   }
 }
