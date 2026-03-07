@@ -389,6 +389,10 @@ Examples:
           // Skip jobs with invalid creation dates to avoid crashing stats generation
           continue;
         }
+        if (Number.isNaN(dt.getTime())) {
+          // Skip jobs with invalid creation dates to avoid crashing stats generation
+          continue;
+        }
         const monthKey = dt.toISOString().substring(0, 7); // YYYY-MM
 
         if (!monthlyStats.has(monthKey)) {
