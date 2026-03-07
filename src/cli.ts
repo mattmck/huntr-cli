@@ -815,6 +815,7 @@ _huntr_completions() {
   local top_commands="me boards jobs activities config login logout completions"
   local boards_commands="list get"
   local jobs_commands="list get stats"
+  local jobs_stats_flags="--format --json --since"
   local activities_commands="list week-csv"
   local config_commands="set-token capture-session check-cdp set-session test-session show-token clear-token clear-session"
 
@@ -823,6 +824,10 @@ _huntr_completions() {
       COMPREPLY=( \$(compgen -W "\${boards_commands}" -- "\${cur}") )
       return ;;
     jobs)
+      if [[ "\${words[2]}" == "stats" ]]; then
+        COMPREPLY=( \$(compgen -W "\${jobs_stats_flags}" -- "\${cur}") )
+        return
+      fi
       COMPREPLY=( \$(compgen -W "\${jobs_commands}" -- "\${cur}") )
       return ;;
     activities)
@@ -887,7 +892,15 @@ _huntr() {
     args)
       case \$words[2] in
         boards)      _describe 'boards command' boards_commands ;;
-        jobs)        _describe 'jobs command' jobs_commands ;;
+        jobs)
+          if [[ "\${words[3]}" == "stats" ]]; then
+            _values 'jobs stats option' \\
+              '--format[Output format: json | table | csv]:format:(json table csv)' \\
+              '--json[Output as JSON (alias for --format json)]' \\
+              '--since[Show stats from YYYY-MM-DD onwards]:date:'
+          else
+            _describe 'jobs command' jobs_commands
+          fi ;;
         activities)  _describe 'activities command' activities_commands ;;
         config)      _describe 'config command' config_commands ;;
         completions) _values 'shell' bash zsh fish ;;
@@ -930,6 +943,9 @@ complete -c huntr -n "__fish_seen_subcommand_from boards"     -a get  -d "Get de
 complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a list  -d "List jobs on a board"
 complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a get   -d "Get details of a specific job"
 complete -c huntr -n "__fish_seen_subcommand_from jobs"       -a stats -d "Show monthly job statistics"
+complete -c huntr -n "__fish_seen_subcommand_from jobs stats" -l format -d "Output format: json | table | csv" -r
+complete -c huntr -n "__fish_seen_subcommand_from jobs stats" -l json   -d "Output as JSON (alias for --format json)"
+complete -c huntr -n "__fish_seen_subcommand_from jobs stats" -l since  -d "Show stats from YYYY-MM-DD onwards" -r
 
 # activities subcommands
 complete -c huntr -n "__fish_seen_subcommand_from activities" -a list     -d "List actions for a board"
