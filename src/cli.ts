@@ -6,11 +6,7 @@ import { BoardList } from './types/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
 import { captureSession, checkCdpSession } from './commands/capture-session';
-import {
-  formatCsvWithFields,
-  formatJsonWithFields,
-  formatTableWithFields,
-} from './lib/list-options';
+
 import { version } from '../package.json';
 
 const program = new Command();
@@ -456,16 +452,7 @@ Examples:
           rejected: totals.rejected,
           other: totals.other,
         });
-      }
-
-      if (result.length === 0) {
-        if (format === 'json') {
-          console.log(formatJsonWithFields(result, fields));
-        } else {
-          console.log('No jobs found.');
-        }
-      } else if (format === 'json') {
-        console.log(formatJsonWithFields(result, fields));
+        console.log(JSON.stringify(result, null, 2));
       } else if (format === 'csv') {
         const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.other]);
         rows.push(['TOTAL', totals.applied, totals.rejected, totals.other]);
