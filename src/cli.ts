@@ -232,16 +232,20 @@ boards
   .action(async (boardId, options, command) => {
     try {
       const api = await getApi(command.parent?.parent?.opts().token);
-      const board = await api.boards.get(boardId);
+      const [board, listsMap] = await Promise.all([
+        api.boards.get(boardId),
+        api.boards.listsByBoard(boardId),
+      ]);
       if (options.json) {
-        console.log(JSON.stringify(board, null, 2));
+        console.log(JSON.stringify({ ...board, lists: Object.values(listsMap) }, null, 2));
       } else {
         console.log(`Board: ${board.name}`);
         console.log(`ID: ${board.id}`);
         console.log(`Created: ${new Date(board.createdAt).toLocaleString()}`);
-        if (board.lists?.length) {
+        const lists = Object.values(listsMap);
+        if (lists.length) {
           console.log('\nLists:');
-          board.lists.forEach(l => console.log(`  - ${l.name}`));
+          lists.forEach(l => console.log(`  - ${l.name}`));
         }
       }
     } catch (error) {
@@ -270,7 +274,11 @@ jobs
       const range = resolveDateRange(options);
 
       const api = await getApi(command.parent?.parent?.opts().token);
-      const jobsList = await api.jobs.listByBoardFlat(boardId);
+      const [jobsList, listsMap] = await Promise.all([
+        api.jobs.listByBoardFlat(boardId),
+        api.boards.listsByBoard(boardId),
+      ]);
+      const listNames = new Map(Object.values(listsMap).map(l => [l.id, l.name]));
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
 
@@ -280,13 +288,14 @@ jobs
         console.log('No jobs found.');
       } else if (format === 'csv') {
         printCsv(
-          ['id', 'title', 'url', 'created_at'],
-          filtered.map(j => [j.id, j.title, j.url ?? '', j.createdAt]),
+          ['id', 'title', 'list', 'url', 'created_at'],
+          filtered.map(j => [j.id, j.title, j._list ? (listNames.get(j._list) ?? j._list) : '', j.url ?? '', j.createdAt]),
         );
       } else {
         console.table(filtered.map(j => ({
           ID: j.id,
           Title: j.title,
+          List: j._list ? (listNames.get(j._list) ?? j._list) : '',
           URL: j.url ?? 'N/A',
           Created: new Date(j.createdAt).toLocaleDateString(),
         })));
@@ -315,7 +324,7 @@ jobs
         console.log(`  URL:      ${job.url ?? 'N/A'}`);
         console.log(`  Location: ${job.location?.address ?? 'N/A'}`);
         if (job.salary) {
-          console.log(`  Salary:   ${job.salary.min ?? 'N/A'} - ${job.salary.max ?? 'N/A'} ${job.salary.currency ?? ''}`);
+          console.log(`  Salary:   ${job.salary}`);
         }
         console.log(`  Created:  ${new Date(job.createdAt).toLocaleString()}`);
       }

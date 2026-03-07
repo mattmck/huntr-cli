@@ -6,14 +6,19 @@ export interface Board {
   name?: string;
   createdAt: string;
   updatedAt?: string;
-  lists?: BoardList[];
+  _lists?: string[];
 }
 
 export interface BoardList {
   id: string;
   _id: string;
   name: string;
-  order?: number;
+  _board: string;
+  _jobs: string[];
+  stageType: string | null;
+  suggestedActivityCategoryNames: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Company as returned inside job action data
@@ -37,11 +42,7 @@ export interface PersonalJob {
   _board: string;
   _activities?: string[];
   _notes?: string[];
-  salary?: {
-    min?: number;
-    max?: number;
-    currency?: string;
-  };
+  salary?: string;
   location?: {
     address?: string;
     name?: string;
