@@ -409,9 +409,6 @@ Examples:
           // Skip jobs with invalid creation dates to avoid crashing stats generation
           continue;
         }
-        if (options.since && ts < options.since.getTime()) {
-          continue;
-        }
         const monthKey = dt.toISOString().substring(0, 7); // YYYY-MM
 
         if (!monthlyStats.has(monthKey)) {
