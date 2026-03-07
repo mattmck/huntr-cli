@@ -128,10 +128,6 @@ This document shows the complete structure of each entity type returned by huntr
 > `lists: BoardList[]` / `order` shape and have not yet been updated to this `_lists`-based
 > API. See the comments in `src/types/personal.ts` and the associated tracking issue for
 > progress on aligning the generated types with this documented response.
-> **Note:** The current TypeScript definitions in `src/types/personal.ts` still model the legacy
-> `lists: BoardList[]` / `order` shape and have not yet been updated to this `_lists`-based
-> API. See the comments in `src/types/personal.ts` and the associated tracking issue for
-> progress on aligning the generated types with this documented response.
 
 ### BoardList
 
@@ -174,7 +170,7 @@ Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 
 > **Note:** `salary` is returned as a raw string by the API (e.g. `"$161,000.00 - $255,000.00"`). The TypeScript type `PersonalJob.salary` currently models it as a structured object — this is inaccurate and tracked in [issue #20](https://github.com/mattmck/huntr-cli/issues/20).
 >
-> **Warning:** The CLI currently dereferences `job.salary.min`, `job.salary.max`, and `job.salary.currency` in [`src/cli.ts`](../src/cli.ts), so runtime behavior does not match the API's raw salary string. Until the API/type mismatch is normalized, either parse the raw salary string in the CLI or avoid nested salary property access.
+> **Warning:** The CLI currently dereferences `job.salary.min`, `job.salary.max`, and `job.salary.currency` in [`src/cli.ts`](../src/cli.ts). Because the API returns `salary` as a raw string, this can throw at runtime when that code path executes. Mitigate by changing `PersonalJob.salary` to `string` (or `string | undefined`) and parsing explicitly, or by guarding/null-checking before nested property access until the API/type model is normalized.
 
 ### Location
 
@@ -282,7 +278,6 @@ huntr me --json | jq 'keys'
 ### Board (from `GET /user/boards`)
 
 > Note: The `huntr boards get` CLI command currently hits a legacy, non-JSON route whose output still uses a `lists` field instead of `_lists`. The structure below reflects the canonical API shape returned by `GET /user/boards`; the CLI command will be updated to match this schema.
-> **Note:** The `huntr boards get` CLI command currently hits a legacy, non-JSON route whose output still uses a `lists` field instead of `_lists`. The structure below reflects the canonical API shape returned by `GET /user/boards`; the CLI command will be updated to match this schema.
 
 ```json
 {
