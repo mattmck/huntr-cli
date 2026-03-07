@@ -32,17 +32,17 @@ Returns the authenticated user's profile.
 
 ### `GET /user/boards`
 
-Returns all boards for the authenticated user. The raw backend for this endpoint may return different shapes, so callers **must not** rely on a single raw response shape and should normalize the result into an **object map** keyed by board ID (as `huntr-cli` does).
+Returns all boards for the authenticated user. The raw backend for this endpoint may return different shapes; `huntr-cli` normalizes them all into a **`Board[]` array** (see `PersonalBoardsApi.list()` in `src/api/personal/boards.ts`).
 
-Observed raw response variants:
-- An object map keyed by board ID (see normalized shape below).
+Observed raw response variants (before normalization):
 - An array of board objects: `[ { ...board }, { ...board }, ... ]`.
 - An object with a `data` property containing an array of boards: `{ "data": [ { ...board }, ... ] }`.
+- An object map keyed by board ID: `{ "<boardId>": { ...board }, ... }`.
 
-**Normalized response shape (recommended for callers):**
+**Normalized response shape returned by `PersonalBoardsApi.list()` (a `Board[]` array):**
 ```json
-{
-  "<boardId>": {
+[
+  {
     "isArchived": false,
     "_members": [],
     "_invitations": [],
@@ -66,7 +66,7 @@ Observed raw response variants:
     "organization": null,
     "id": "<boardId>"
   }
-}
+]
 ```
 
 > **Note:** `_lists` contains only list IDs, not list objects. To get list names, use `GET /board/:id/lists`.
