@@ -206,8 +206,10 @@ The following paths return an HTML page (the Huntr SPA) rather than JSON. They a
 | Path | Notes |
 |------|-------|
 | `GET /boards` | Returns HTML |
-| `GET /boards/:id` | Returns HTML — returns SPA instead of JSON |
+| `GET /boards/:id` | Returns HTML — use `GET /board/:id` instead (singular) |
 | `GET /list/:id` | Returns HTML |
 | `GET /lists/:id` | Returns HTML |
 | `GET /board/:id/list/:listId` | Returns HTML |
 | `GET /board/:id/lists/:listId` | Returns HTML |
+
+> **Note:** The working endpoint is `GET /board/:id` (singular `/board/`, not `/boards/`), which returns the board object with `_lists` containing list IDs to resolve via `GET /board/:id/lists`.
