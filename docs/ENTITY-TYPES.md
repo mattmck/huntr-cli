@@ -272,6 +272,7 @@ huntr me --json | jq 'keys'
 
 ### Board (from `GET /user/boards`)
 
+> Note: The `huntr boards get` CLI command currently hits a legacy, non-JSON route whose output still uses a `lists` field instead of `_lists`. The structure below reflects the canonical API shape returned by `GET /user/boards`; the CLI command will be updated to match this schema.
 > **Note:** The `huntr boards get` CLI command currently hits a legacy, non-JSON route whose output still uses a `lists` field instead of `_lists`. The structure below reflects the canonical API shape returned by `GET /user/boards`; the CLI command will be updated to match this schema.
 
 ```json
