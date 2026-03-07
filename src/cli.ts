@@ -353,6 +353,20 @@ jobs
   .option('-f, --format <format>', 'Output format: json | table | csv', parseFormatOption, 'json')
   .option('-j, --json', 'Output as JSON (alias for --format json)')
   .option('--since <date>', 'Show stats from YYYY-MM-DD onwards', parseDateOption)
+  .addHelpText(
+    'after',
+    `
+Examples:
+ # Show monthly stats for a board in JSON (default)
+ $ huntr jobs stats <board-id>
+
+ # Show stats from a specific date in table format
+ $ huntr jobs stats <board-id> --since 2024-01-01 --format table
+
+ # Explicit JSON output (same as --format json)
+ $ huntr jobs stats <board-id> --json
+`
+  )
   .action(async (boardId, options, command) => {
     try {
       const format = resolveOutputFormat(options);
