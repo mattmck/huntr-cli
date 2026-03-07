@@ -365,7 +365,7 @@ Examples:
 
  # Explicit JSON output (same as --format json)
  $ huntr jobs stats <board-id> --json
-`
+`,
   )
   .action(async (boardId, options, command) => {
     try {
@@ -422,7 +422,13 @@ Examples:
         totals.noResponse += stats.noResponse;
       }
 
-      if (format === 'json') {
+      if (sorted.length === 0) {
+        if (format === 'json') {
+          console.log(JSON.stringify([], null, 2));
+        } else {
+          console.log('No jobs found.');
+        }
+      } else if (format === 'json') {
         const result = sorted.map(([month, stats]) => ({
           month,
           applied: stats.applied,
@@ -436,8 +442,6 @@ Examples:
           noResponse: totals.noResponse,
         });
         console.log(JSON.stringify(result, null, 2));
-      } else if (sorted.length === 0) {
-        console.log('No jobs found.');
       } else if (format === 'csv') {
         const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.noResponse]);
         rows.push(['TOTAL', totals.applied, totals.rejected, totals.noResponse]);
