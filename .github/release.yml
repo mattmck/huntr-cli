@@ -19,3 +19,6 @@ changelog:
     - title: Refactors
       labels:
         - type/refactor
+    - title: Other Changes
+      labels:
+        - '*'
