@@ -10,7 +10,6 @@ import {
   formatCsvWithFields,
   formatJsonWithFields,
   formatTableWithFields,
-  validateFields,
 } from './lib/list-options';
 import { version } from '../package.json';
 
@@ -437,7 +436,7 @@ Examples:
         totals.noResponse += stats.noResponse;
       }
 
-      const fields = validateFields(['month', 'applied', 'rejected', 'noResponse']);
+      const fields = ['month', 'applied', 'rejected', 'noResponse'];
       const result = sorted.map(([month, stats]) => ({
         month,
         applied: stats.applied,
