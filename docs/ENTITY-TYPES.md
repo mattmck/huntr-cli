@@ -25,27 +25,32 @@ This document shows the complete structure of each entity type returned by huntr
 
 ```typescript
 {
-  _id: "507f1f77bcf86cd799439011",
-  id: "job_001",
-  title: "Senior Engineer at TechCorp",
-  url: "https://techs.jobs/engineer",
-  rootDomain: "techs.jobs",
-  htmlDescription: "HTML job description...",
-  _company: "company_id_ref",
-  _list: "list_id_ref",
-  _board: "board_id_ref",
-  _activities: ["action_1", "action_2"],
-  _notes: ["note_1"],
+  _id: "<jobId>",
+  id: "<jobId>",
+  title: "Software Architect",
+  url: "https://...",
+  rootDomain: "icims.com",
+  htmlDescription: "<p>...</p>",
+  _company: "<companyId>",
+  _list: "<listId>",
+  _board: "<boardId>",
+  _activities: ["<activityId>"],
+  _interviewActivities: [],
+  _contacts: [],
+  _todos: [],
+  _notes: [],
   salary: "$161,000.00 - $255,000.00",  // raw string, not a structured object
   location: {
-    address: "San Francisco, CA",
-    name: "San Francisco",
-    lat: "37.7749",
-    lng: "-122.4194"
+    address: "Germantown, MD, USA",
+    name: "Germantown",
+    placeId: "ChIJ...",
+    url: "https://maps.google.com/?cid=...",
+    lat: "39.1731621",
+    lng: "-77.2716502"
   },
-  createdAt: "2024-01-20T14:15:00Z",
-  updatedAt: "2024-02-15T10:00:00Z",
-  lastMovedAt: "2024-02-18T09:30:00Z"
+  createdAt: "2026-01-04T18:49:28.657Z",
+  updatedAt: "2026-01-08T21:38:00.838Z",
+  lastMovedAt: "2026-01-04T18:49:34.000Z"
 }
 ```
 
@@ -159,6 +164,9 @@ Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 | `_list` | string? | Current list ID (reference) |
 | `_board` | string | Board ID (reference) |
 | `_activities` | string[] | Activity IDs (references) |
+| `_interviewActivities` | string[] | Interview activity IDs (references) |
+| `_contacts` | string[] | Contact IDs (references) |
+| `_todos` | string[] | Todo IDs (references) |
 | `_notes` | string[] | Note IDs (references) |
 | `salary` | string? | Salary as raw string (e.g. `"$120,000 - $150,000"`); **not** a structured object |
 | `location` | Location? | Job location |
@@ -177,10 +185,11 @@ Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 | Field | Type | Description |
 |-------|------|-------------|
 | `address` | string? | Full address |
-| `name` | string? | Location name (e.g., "San Francisco") |
+| `name` | string? | Location name (e.g., "Germantown") |
+| `placeId` | string? | Google Maps place ID (e.g., `"ChIJ..."`) |
+| `url` | string? | Google Maps URL (e.g., `"https://maps.google.com/?cid=..."`) |
 | `lat` | string? | Latitude as string |
 | `lng` | string? | Longitude as string |
-| `url` | string? | Location info URL |
 
 ### Activity (Action)
 
