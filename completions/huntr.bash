@@ -47,7 +47,7 @@ _huntr_completions() {
             COMPREPLY=($(compgen -W "$format_opts $global_opts" -- "$cur"))
             ;;
           stats)
-            COMPREPLY=($(compgen -W "$format_opts $global_opts --since -j --json" -- "$cur"))
+            COMPREPLY=($(compgen -W "-f --format json table csv $global_opts --since -j --json" -- "$cur"))
             ;;
         esac
       fi
