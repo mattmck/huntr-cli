@@ -80,7 +80,8 @@ release.yml workflow triggers
 | **GITHUB-ACTIONS-GUIDE.md** | Workflow reference | DevOps/Maintainers |
 | **AUTOMATIC-PUBLISHING.md** | Publishing workflow | Maintainers/Release managers |
 | **TESTING.md** | Test suite & verification | QA/Developers |
-| **ENTITY-TYPES.md** | Type schemas | API users |
+| **ENTITY-TYPES.md** | Type schemas with real API shapes | API users |
+| **API-ENDPOINTS.md** | Raw endpoint reference & response shapes | API users/Developers |
 | **OUTPUT-FORMATS.md** | Field reference | Users |
 | **OUTPUT-EXAMPLES.md** | Usage examples | Users |
 | **NPM-PUBLISHING.md** | Distribution explained | Users |
@@ -340,6 +341,7 @@ huntr-cli/
 │   ├── AUTOMATIC-PUBLISHING.md
 │   ├── TESTING.md
 │   ├── ENTITY-TYPES.md
+│   ├── API-ENDPOINTS.md
 │   ├── OUTPUT-FORMATS.md
 │   ├── OUTPUT-EXAMPLES.md
 │   └── NPM-PUBLISHING.md

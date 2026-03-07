@@ -8,15 +8,16 @@ This document shows the complete structure of each entity type returned by huntr
 
 ```typescript
 {
-  id: "68bf9e33f871e5004a5eb58e",
-  _id: "507f1f77bcf86cd799439011",
-  name: "My Job Search",
-  createdAt: "2024-01-15T10:30:00Z",
-  updatedAt: "2024-02-20T15:45:00Z",
-  lists: [
-    { id: "list_1", _id: "...", name: "Active Leads", order: 1 },
-    { id: "list_2", _id: "...", name: "Interviewing", order: 2 }
-  ]
+  id: "<boardId>",
+  _id: "<boardId>",
+  name: "Job Search 2025",
+  isArchived: false,
+  createdAt: "2025-09-09T03:25:39.770Z",
+  updatedAt: "2026-01-22T18:23:46.492Z",
+  _lists: [
+    "<listId1>",
+    "<listId2>"
+  ]  // bare list IDs — use GET /board/:boardId/lists to resolve names
 }
 ```
 
@@ -24,31 +25,32 @@ This document shows the complete structure of each entity type returned by huntr
 
 ```typescript
 {
-  _id: "507f1f77bcf86cd799439011",
-  id: "job_001",
-  title: "Senior Engineer at TechCorp",
-  url: "https://techs.jobs/engineer",
-  rootDomain: "techs.jobs",
-  htmlDescription: "HTML job description...",
-  _company: "company_id_ref",
-  _list: "list_id_ref",
-  _board: "board_id_ref",
-  _activities: ["action_1", "action_2"],
-  _notes: ["note_1"],
-  salary: {
-    min: 120000,
-    max: 150000,
-    currency: "USD"
-  },
+  _id: "<jobId>",
+  id: "<jobId>",
+  title: "Software Architect",
+  url: "https://...",
+  rootDomain: "icims.com",
+  htmlDescription: "<p>...</p>",
+  _company: "<companyId>",
+  _list: "<listId>",
+  _board: "<boardId>",
+  _activities: ["<activityId>"],
+  _interviewActivities: [],
+  _contacts: [],
+  _todos: [],
+  _notes: [],
+  salary: "$161,000.00 - $255,000.00",  // raw string, not a structured object
   location: {
-    address: "San Francisco, CA",
-    name: "San Francisco",
-    lat: "37.7749",
-    lng: "-122.4194"
+    address: "Germantown, MD, USA",
+    name: "Germantown",
+    placeId: "ChIJ...",
+    url: "https://maps.google.com/?cid=...",
+    lat: "39.1731621",
+    lng: "-77.2716502"
   },
-  createdAt: "2024-01-20T14:15:00Z",
-  updatedAt: "2024-02-15T10:00:00Z",
-  lastMovedAt: "2024-02-18T09:30:00Z"
+  createdAt: "2026-01-04T18:49:28.657Z",
+  updatedAt: "2026-01-08T21:38:00.838Z",
+  lastMovedAt: "2026-01-04T18:49:34.000Z"
 }
 ```
 
@@ -101,14 +103,13 @@ This document shows the complete structure of each entity type returned by huntr
 
 ```typescript
 {
-  id: "user_123",
-  _id: "507f1f77bcf86cd799439011",
-  email: "john@example.com",
-  givenName: "John",
-  familyName: "Doe",
-  firstName: "John",
-  lastName: "Doe",
-  createdAt: "2024-01-15T10:30:00Z"
+  id: "user_profile_id_1",
+  _id: "user_profile_id_1",
+  email: "user@example.com",
+  givenName: "Example",
+  familyName: "User",
+  fullName: "Example User",
+  auth0IdForMixpanel: "auth0|example-user-id"
 }
 ```
 
@@ -121,20 +122,33 @@ This document shows the complete structure of each entity type returned by huntr
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique board identifier (MongoDB ObjectId as string) |
-| `_id` | string | Alternative ID format |
-| `name` | string | Board name (e.g., "My Job Search") |
+| `_id` | string | Same as `id` |
+| `name` | string | Board name (e.g., "Job Search 2025") |
 | `createdAt` | ISO 8601 | Creation timestamp |
 | `updatedAt` | ISO 8601 | Last update timestamp |
-| `lists` | Array<BoardList> | Lists (columns) on the board |
+| `_lists` | string[] | Array of bare list IDs — resolve via `GET /board/:id/lists` |
+| `isArchived` | boolean | Whether board is archived |
+
+> Note: The current TypeScript definitions in `src/types/personal.ts` still model the legacy
+> `lists: BoardList[]` / `order` shape and have not yet been updated to this `_lists`-based
+> API. See the `Board.lists` and `BoardList.order` definitions in `src/types/personal.ts` and
+> the associated tracking issue for progress on aligning the generated types with this documented response.
 
 ### BoardList
+
+Returned by `GET /board/:id/lists` as an object map keyed by list ID.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique list identifier |
-| `_id` | string | Alternative ID format |
-| `name` | string | List name (e.g., "Active Leads", "Interviewing") |
-| `order` | number? | Position order on board |
+| `_id` | string | Same as `id` |
+| `name` | string | List name (e.g., `wishlist`, `applied`, `interview`, `offer`, `rejected`) |
+| `_board` | string | Parent board ID |
+| `_jobs` | string[] | Array of job IDs in this list |
+| `stageType` | string\|null | Pipeline stage (`WISHLIST`, `APPLY`, `ON_SITE_INTERVIEW`, `OFFER_RECEIVED`, `REJECTED`); `null` for custom lists |
+| `suggestedActivityCategoryNames` | string[] | Suggested follow-up activity types |
+| `createdAt` | ISO 8601 | Creation timestamp |
+| `updatedAt` | ISO 8601 | Last update timestamp |
 
 ### Job
 
@@ -150,8 +164,11 @@ This document shows the complete structure of each entity type returned by huntr
 | `_list` | string? | Current list ID (reference) |
 | `_board` | string | Board ID (reference) |
 | `_activities` | string[] | Activity IDs (references) |
+| `_interviewActivities` | string[] | Interview activity IDs (references) |
+| `_contacts` | string[] | Contact IDs (references) |
+| `_todos` | string[] | Todo IDs (references) |
 | `_notes` | string[] | Note IDs (references) |
-| `salary` | Salary? | Salary information |
+| `salary` | string? | Salary as raw string (e.g. `"$120,000 - $150,000"`); **not** a structured object |
 | `location` | Location? | Job location |
 | `createdAt` | ISO 8601 | When job was added |
 | `updatedAt` | ISO 8601 | Last update |
@@ -159,21 +176,20 @@ This document shows the complete structure of each entity type returned by huntr
 
 ### Salary
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `min` | number? | Minimum salary |
-| `max` | number? | Maximum salary |
-| `currency` | string? | Currency (e.g., "USD", "EUR") |
+> **Note:** `salary` is returned as a raw string by the API (e.g. `"$161,000.00 - $255,000.00"`). The TypeScript type `PersonalJob.salary` currently models it as a structured object — this is inaccurate and tracked in [issue #20](https://github.com/mattmck/huntr-cli/issues/20).
+>
+> **Warning:** The CLI currently dereferences `job.salary.min`, `job.salary.max`, and `job.salary.currency` in [`src/cli.ts`](../src/cli.ts) as if `salary` were a structured object. Because the API actually returns `salary` as a raw string, these nested property lookups evaluate to `undefined`, which can cause the salary to be displayed incorrectly (for example, as `N/A`) rather than reflecting the raw value. Mitigate by changing `PersonalJob.salary` to `string` (or `string | undefined`) and updating the CLI to parse and render the string value explicitly, or by aligning the API and type model so that `salary` is genuinely structured.
 
 ### Location
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `address` | string? | Full address |
-| `name` | string? | Location name (e.g., "San Francisco") |
+| `name` | string? | Location name (e.g., "Germantown") |
+| `placeId` | string? | Google Maps place ID (e.g., `"ChIJ..."`) |
+| `url` | string? | Google Maps URL (e.g., `"https://maps.google.com/?cid=..."`) |
 | `lat` | string? | Latitude as string |
 | `lng` | string? | Longitude as string |
-| `url` | string? | Location info URL |
 
 ### Activity (Action)
 
@@ -210,14 +226,14 @@ This document shows the complete structure of each entity type returned by huntr
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique user identifier |
-| `_id` | string? | Alternative ID format |
+| `_id` | string | Same as `id` |
 | `email` | string | User email address |
-| `givenName` | string? | First name (from profile) |
-| `familyName` | string? | Last name (from profile) |
-| `firstName` | string? | First name (legacy field) |
-| `lastName` | string? | Last name (legacy field) |
-| `createdAt` | ISO 8601 | Account creation date |
+| `givenName` | string? | First name |
+| `familyName` | string? | Last name |
+| `fullName` | string? | Full name |
+| `auth0IdForMixpanel` | string? | Internal analytics ID |
 
+> Note: The `UserProfile` TypeScript interface in `src/types/personal.ts` is currently out of date with this schema. It still uses legacy `firstName`/`lastName` fields and a required `createdAt`, and does **not** yet include `fullName` or `auth0IdForMixpanel`. Update the interface before relying on these fields in typed code.
 ---
 
 ## Action Types
@@ -259,39 +275,55 @@ huntr me --json | jq 'keys'
 # Output: ["id", "_id", "email", "givenName", "familyName", ...]
 ```
 
+> **Note on `huntr boards get`:** This command is currently broken in the direct-fetch path and should be considered **non-functional** for JSON output. The CLI command `huntr boards get` calls [`PersonalBoardsApi.get`](../src/api/personal/boards.ts), which requests `/boards/:id`; per [API-ENDPOINTS.md](./API-ENDPOINTS.md), that route returns HTML while the canonical JSON board endpoint is `GET /user/boards`.
+>
+> There is currently no compatibility layer in the codebase that converts that HTML response into JSON. Until this is fixed, do **not** use `huntr boards get ... --json` for programmatic consumption. This applies to **any** `huntr boards get` usages you might see in this document (for example, in schema/`jq` examples) or in older external snippets — treat those as legacy and replace them with the pattern shown below.
+>
+> For real, working usage when you need board JSON (including when inspecting schemas with `jq`), prefer a command such as:
+>
+> ```bash
+> huntr boards list --json | jq '.[0] | keys'
+> ```
+>
+> **TODO:** Update `PersonalBoardsApi.get` so `huntr boards get` resolves boards via `GET /user/boards` (or another confirmed JSON endpoint) and behaves consistently with `API-ENDPOINTS.md`. Once that is implemented, this note and any remaining workarounds can be revised to show `huntr boards get` examples again, and the schema/querying examples in this document can be updated back to `huntr boards get`.
+
 ---
 
 ## JSON Schema Examples
 
-### Complete Board with Jobs
+### Board (from `GET /user/boards`)
+
+> Note: The `huntr boards get` CLI command currently hits a legacy, non-JSON route whose output still uses a `lists` field instead of `_lists`. The structure below reflects the canonical API shape returned by `GET /user/boards`; the CLI command will be updated to match this schema.
 
 ```json
 {
-  "id": "68bf9e33f871e5004a5eb58e",
-  "_id": "507f1f77bcf86cd799439011",
-  "name": "My Job Search",
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-02-20T15:45:00Z",
-  "lists": [
-    {
-      "id": "list_1",
-      "_id": "507f1f77bcf86cd799439012",
-      "name": "Active Leads",
-      "order": 1
-    },
-    {
-      "id": "list_2",
-      "_id": "507f1f77bcf86cd799439013",
-      "name": "Interviewing",
-      "order": 2
-    },
-    {
-      "id": "list_3",
-      "_id": "507f1f77bcf86cd799439014",
-      "name": "Offers",
-      "order": 3
-    }
+  "id": "<boardId>",
+  "_id": "<boardId>",
+  "name": "Job Search 2025",
+  "isArchived": false,
+  "createdAt": "2025-09-09T03:25:39.770Z",
+  "updatedAt": "2026-01-22T18:23:46.492Z",
+  "_lists": [
+    "<listId1>",
+    "<listId2>"
   ]
+}
+```
+
+### BoardList (from `GET /board/:id/lists`)
+
+```json
+{
+  "_id": "<listId>",
+  "id": "<listId>",
+  "name": "applied",
+  "_board": "<boardId>",
+  "_jobs": ["<jobId>"],
+  "stageType": "APPLY",
+  "suggestedActivityCategoryNames": ["Follow Up", "Reach Out"],
+  "createdAt": "2025-09-09T03:25:39.779Z",
+  "updatedAt": "2026-03-06T22:36:02.131Z",
+  "__v": 0
 }
 ```
 
@@ -299,31 +331,33 @@ huntr me --json | jq 'keys'
 
 ```json
 {
-  "_id": "507f1f77bcf86cd799439011",
-  "id": "job_001",
-  "title": "Senior Software Engineer",
-  "url": "https://example.com/jobs/engineer",
-  "rootDomain": "example.com",
-  "htmlDescription": "<p>We're looking for...</p>",
-  "_company": "company_1",
-  "_list": "list_2",
-  "_board": "68bf9e33f871e5004a5eb58e",
-  "_activities": ["action_1", "action_2", "action_3"],
-  "_notes": ["note_1"],
-  "salary": {
-    "min": 120000,
-    "max": 150000,
-    "currency": "USD"
-  },
+  "_id": "<jobId>",
+  "id": "<jobId>",
+  "title": "Software Architect",
+  "url": "https://...",
+  "rootDomain": "icims.com",
+  "htmlDescription": "<p>...</p>",
+  "_company": "<companyId>",
+  "_list": "<listId>",
+  "_board": "<boardId>",
+  "_activities": ["<activityId>"],
+  "_interviewActivities": [],
+  "_contacts": [],
+  "_todos": [],
+  "_notes": [],
+  "salary": "$161,000.00 - $255,000.00",
   "location": {
-    "address": "San Francisco, CA",
-    "name": "San Francisco",
-    "lat": "37.7749",
-    "lng": "-122.4194"
+    "address": "Germantown, MD, USA",
+    "name": "Germantown",
+    "placeId": "ChIJ...",
+    "url": "https://maps.google.com/?cid=...",
+    "lat": "39.1731621",
+    "lng": "-77.2716502"
   },
-  "createdAt": "2024-01-20T14:15:00Z",
-  "updatedAt": "2024-02-15T10:00:00Z",
-  "lastMovedAt": "2024-02-18T09:30:00Z"
+  "createdAt": "2026-01-04T18:49:28.657Z",
+  "updatedAt": "2026-01-08T21:38:00.838Z",
+  "lastMovedAt": "2026-01-04T18:49:34.240Z",
+  "__v": 0
 }
 ```
 
@@ -340,7 +374,7 @@ huntr me --json | jq 'keys'
   "data": {
     "_job": "job_001",
     "_company": "company_1",
-    "_board": "68bf9e33f871e5004a5eb58e",
+    "_board": "<boardId>",
     "_fromList": "list_1",
     "_toList": "list_2",
     "job": {
@@ -458,5 +492,6 @@ huntr activities list <board-id> --json | jq '.[] | {date: .date, company: .comp
 
 ## See Also
 
+- [API Endpoints](./API-ENDPOINTS.md) — Raw endpoint shapes, response structures, and non-working routes
 - [Output Formats](./OUTPUT-FORMATS.md) — How fields are displayed in different formats
 - [Output Examples](./OUTPUT-EXAMPLES.md) — Practical usage examples
