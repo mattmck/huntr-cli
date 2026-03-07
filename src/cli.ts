@@ -814,7 +814,7 @@ _huntr_completions() {
   local top_commands="me boards jobs activities config login logout completions"
   local boards_commands="list get"
   local jobs_commands="list get stats"
-  local jobs_stats_flags="--format -f --json -j --since"
+  local jobs_stats_flags="-f --format -j --json --since"
   local activities_commands="list week-csv"
   local config_commands="set-token capture-session check-cdp set-session test-session show-token clear-token clear-session"
 
