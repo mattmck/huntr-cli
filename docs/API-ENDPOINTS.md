@@ -168,32 +168,31 @@ Returns a single job object (same shape as above, unwrapped from the `jobs` map)
 
 ### `GET /board/:boardId/actions`
 
-Returns activity log for a board as an **object map** keyed by action ID, plus a `nextPage` cursor for pagination.
+Returns activity log for a board as a **plain object map** keyed by action ID (no wrapper object).
+
+> **Note:** huntr-cli consumes this response directly as `Record<string, PersonalAction>` — it does not expect an `{ actions: {…}, nextPage }` envelope. If the live API ever returns a wrapper shape, `PersonalActionsApi.listByBoard()` would need to be updated accordingly.
 
 **Response:**
 ```json
 {
-  "actions": {
-    "<actionId>": {
-      "_id": "...",
-      "id": "...",
-      "actionType": "JOB_MOVED",
-      "date": "2026-01-04T18:49:34.240Z",
-      "createdAt": "2026-01-04T18:49:34.240Z",
-      "data": {
-        "_job": "<jobId>",
-        "_company": "<companyId>",
-        "_board": "<boardId>",
-        "_fromList": "<listId>",
-        "_toList": "<listId>",
-        "job": { "_id": "...", "id": "...", "title": "Software Architect" },
-        "company": { "_id": "...", "id": "...", "name": "Viasat", "color": null },
-        "fromList": { "_id": "...", "id": "...", "name": "wishlist" },
-        "toList": { "_id": "...", "id": "...", "name": "applied" }
-      }
+  "<actionId>": {
+    "_id": "...",
+    "id": "...",
+    "actionType": "JOB_MOVED",
+    "date": "2026-01-04T18:49:34.240Z",
+    "createdAt": "2026-01-04T18:49:34.240Z",
+    "data": {
+      "_job": "<jobId>",
+      "_company": "<companyId>",
+      "_board": "<boardId>",
+      "_fromList": "<listId>",
+      "_toList": "<listId>",
+      "job": { "_id": "...", "id": "...", "title": "Software Architect" },
+      "company": { "_id": "...", "id": "...", "name": "Viasat", "color": null },
+      "fromList": { "_id": "...", "id": "...", "name": "wishlist" },
+      "toList": { "_id": "...", "id": "...", "name": "applied" }
     }
-  },
-  "nextPage": null
+  }
 }
 ```
 
