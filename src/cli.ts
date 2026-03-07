@@ -241,7 +241,9 @@ boards
         console.log(`Created: ${new Date(board.createdAt).toLocaleString()}`);
         if (board.lists?.length) {
           console.log('\nLists:');
-          board.lists.forEach(l => console.log(`  - ${l.name}`));
+          board.lists.forEach(l => {
+            console.log(`  - ${l.name}`);
+          });
         }
       }
     } catch (error) {
