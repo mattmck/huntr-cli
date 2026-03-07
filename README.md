@@ -219,7 +219,7 @@ huntr jobs get <board-id> <job-id>
 Show monthly application statistics:
 
 ```bash
-# JSON output (default) — applied, rejected, no response per month + TOTAL
+# JSON output (default) — applied, rejected, no response per month (includes TOTAL summary when results are present)
 huntr jobs stats <board-id>
 
 # Table format for easy reading
