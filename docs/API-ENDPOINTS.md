@@ -10,7 +10,7 @@ All requests use an `Authorization: Bearer <token>` header. Tokens are short-liv
 
 ## Endpoints
 
-### `GET /user/me`
+### `GET /user`
 
 Returns the authenticated user's profile.
 
