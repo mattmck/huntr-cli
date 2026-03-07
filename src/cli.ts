@@ -442,6 +442,7 @@ Examples:
         } else {
           console.log('No jobs found.');
         }
+        return;
       } else if (format === 'json') {
         const result = sorted.map(([month, stats]) => ({
           month,
