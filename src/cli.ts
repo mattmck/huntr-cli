@@ -412,7 +412,7 @@ Examples:
         if (isRejected) {
           stats.rejected += 1;
         } else {
-          // Other = not rejected (includes applied, timeout, interview, offer, custom lists)
+          // Other = everything not rejected (e.g. wishlist, apply, interview/on-site, offer, timeout, and custom lists)
           stats.other += 1;
         }
       }
