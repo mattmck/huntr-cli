@@ -6,8 +6,6 @@ on:
       - main
     paths:
       - 'package.json'
-      - 'src/**'
-      - '.github/workflows/release.yml'
 
 jobs:
   release:
@@ -15,9 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write
-    # The 'paths' filter above ensures this only runs on package.json changes
-    # Tag existence check prevents duplicate releases
+    # Only version bumps in package.json should create releases.
 
     steps:
       - uses: actions/checkout@v4
@@ -37,13 +33,14 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check if tag exists
-        id: check_tag
+      - name: Verify release tag exists on origin
         run: |
-          if git rev-parse "refs/tags/${{ steps.package.outputs.tag }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
+          git fetch --tags origin
+
+          if ! git rev-parse "refs/tags/${{ steps.package.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Missing tag ${{ steps.package.outputs.tag }} on origin."
+            echo "Push the version tag with: git push origin main --tags"
+            exit 1
           fi
 
       - name: Install dependencies
@@ -67,19 +64,18 @@ jobs:
           cd ..
 
       - name: Create GitHub Release
-        if: steps.check_tag.outputs.exists == 'false'
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.package.outputs.tag }}
           name: Version ${{ steps.package.outputs.version }}
           commit: ${{ github.sha }}
           generateReleaseNotes: true
+          allowUpdates: true
           draft: false
           prerelease: ${{ contains(steps.package.outputs.version, '-') }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload release assets
-        if: steps.check_tag.outputs.exists == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: release-artifacts-${{ steps.package.outputs.version }}
@@ -87,25 +83,8 @@ jobs:
           retention-days: 90
 
       - name: Notify release created
-        if: steps.check_tag.outputs.exists == 'false'
         run: |
           echo "✅ Release v${{ steps.package.outputs.version }} created!"
           echo "   Tag: ${{ steps.package.outputs.tag }}"
           echo "   Artifacts uploaded"
-          echo "   Publishing to npm will start automatically..."
-
-      - name: Sleep before npm publish
-        if: steps.check_tag.outputs.exists == 'false'
-        run: sleep 10  # Give GitHub time to create release
-
-      - name: Trigger publish workflow
-        if: steps.check_tag.outputs.exists == 'false'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'publish.yml',
-              ref: 'main'
-            })
+          echo "   npm publishing runs from publish.yml on the pushed version tag."
