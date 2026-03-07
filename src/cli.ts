@@ -342,6 +342,115 @@ jobs
     }
   });
 
+jobs
+  .command('stats')
+  .description('Show monthly job application statistics')
+  .argument('<board-id>', 'Board ID')
+  .option('-f, --format <format>', 'Output format: json | table | csv', parseFormatOption, 'json')
+  .option('-j, --json', 'Output as JSON (alias for --format json)')
+  .option('--since <date>', 'Show stats from YYYY-MM onwards', parseDateOption)
+  .action(async (boardId, options, command) => {
+    try {
+      const format = resolveOutputFormat(options);
+      const api = await getApi(command.parent?.parent?.opts().token);
+
+      // Fetch jobs and lists
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [jobsList, listsMap] = await Promise.all([
+        api.jobs.listByBoardFlat(boardId),
+        api.boards.listsByBoard(boardId),
+      ]);
+
+      // Build a map of list IDs to list names
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const listNames = new Map(Object.values(listsMap).map((l: any) => [l.id, l.name]));
+
+      // Group jobs by month of creation
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const monthlyStats = new Map<string, { applied: number; rejected: number; noResponse: number }>();
+
+      for (const job of jobsList) {
+        const dt = new Date(job.createdAt);
+        const monthKey = dt.toISOString().substring(0, 7); // YYYY-MM
+
+        if (!monthlyStats.has(monthKey)) {
+          monthlyStats.set(monthKey, { applied: 0, rejected: 0, noResponse: 0 });
+        }
+
+        const stats = monthlyStats.get(monthKey)!;
+        stats.applied += 1;
+
+        // Check if job is in rejected list
+        const jobListName = job._list ? (listNames.get(job._list) ?? '') : '';
+        if (jobListName.toLowerCase() === 'rejected') {
+          stats.rejected += 1;
+        } else {
+          // No response = not rejected (includes applied, timeout, interview, offer)
+          stats.noResponse += 1;
+        }
+      }
+
+      // Sort by month
+      let sorted = Array.from(monthlyStats.entries()).sort();
+
+      // Filter by since date if provided
+      if (options.since) {
+        const sinceMonth = options.since.toISOString().substring(0, 7);
+        sorted = sorted.filter(([month]) => month >= sinceMonth);
+      }
+
+      // Calculate totals
+      const totals = { applied: 0, rejected: 0, noResponse: 0 };
+      for (const [, stats] of sorted) {
+        totals.applied += stats.applied;
+        totals.rejected += stats.rejected;
+        totals.noResponse += stats.noResponse;
+      }
+
+      if (format === 'json') {
+        const result = sorted.map(([month, stats]) => ({
+          month,
+          applied: stats.applied,
+          rejected: stats.rejected,
+          noResponse: stats.noResponse,
+        }));
+        result.push({
+          month: 'TOTAL',
+          applied: totals.applied,
+          rejected: totals.rejected,
+          noResponse: totals.noResponse,
+        });
+        console.log(JSON.stringify(result, null, 2));
+      } else if (sorted.length === 0) {
+        console.log('No jobs found.');
+      } else if (format === 'csv') {
+        const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.noResponse]);
+        rows.push(['TOTAL', totals.applied, totals.rejected, totals.noResponse]);
+        printCsv(
+          ['month', 'applied', 'rejected', 'no_response'],
+          rows,
+        );
+      } else {
+        const rows = sorted.map(([month, stats]) => ({
+          Month: month,
+          Applied: stats.applied,
+          Rejected: stats.rejected,
+          'No Response': stats.noResponse,
+        }));
+        rows.push({
+          Month: 'TOTAL',
+          Applied: totals.applied,
+          Rejected: totals.rejected,
+          'No Response': totals.noResponse,
+        });
+        console.table(rows);
+      }
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
 // ── activities ───────────────────────────────────────────────────────────────
 
 const activities = program.command('activities').description('View your board activity log');
