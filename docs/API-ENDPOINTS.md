@@ -39,7 +39,7 @@ Observed raw response variants:
 - An object with a `data` property containing an array: `{ "data": [ { ...board }, ... ] }`.
 - An object map keyed by board ID: `{ "<boardId>": { ...board }, ... }` (callers should not rely on this shape directly).
 
-**Normalized response shape returned by huntr-cli (`Board[]`):**
+**Normalized response shape returned by `huntr-cli` (`Board[]`):**
 ```json
 [
   {
