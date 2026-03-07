@@ -8,14 +8,14 @@ This document shows the complete structure of each entity type returned by huntr
 
 ```typescript
 {
-  id: "68bf9e33f871e5004a5eb58e",
-  _id: "68bf9e33f871e5004a5eb58e",
+  id: "<boardId>",
+  _id: "<boardId>",
   name: "Job Search 2025",
   createdAt: "2025-09-09T03:25:39.770Z",
   updatedAt: "2026-01-22T18:23:46.492Z",
   _lists: [
-    "68bf9e33f871e5004a5eb592",
-    "68bf9e33f871e5004a5eb593"
+    "<listId1>",
+    "<listId2>"
   ]  // bare list IDs — use GET /board/:id/lists to resolve names
 }
 ```
@@ -97,13 +97,13 @@ This document shows the complete structure of each entity type returned by huntr
 
 ```typescript
 {
-  id: "66688215168bb20075e89571",
-  _id: "66688215168bb20075e89571",
+  id: "user_profile_id_1",
+  _id: "user_profile_id_1",
   email: "user@example.com",
-  givenName: "Matthew",
-  familyName: "McKnight",
-  fullName: "Matthew McKnight",
-  auth0IdForMixpanel: "66688215168bb20075e89571"
+  givenName: "Example",
+  familyName: "User",
+  fullName: "Example User",
+  auth0IdForMixpanel: "auth0|example-user-id"
 }
 ```
 
@@ -122,6 +122,11 @@ This document shows the complete structure of each entity type returned by huntr
 | `updatedAt` | ISO 8601 | Last update timestamp |
 | `_lists` | string[] | Array of bare list IDs — resolve via `GET /board/:id/lists` |
 | `isArchived` | boolean | Whether board is archived |
+
+> **Note:** The current TypeScript definitions in `src/types/personal.ts` still model the legacy
+> `lists: BoardList[]` / `order` shape and have not yet been updated to this `_lists`-based
+> API. See the comments in `src/types/personal.ts` and the associated tracking issue for
+> progress on aligning the generated types with this documented response.
 
 ### BoardList
 
@@ -263,17 +268,19 @@ huntr me --json | jq 'keys'
 
 ### Board (from `GET /user/boards`)
 
+> **Note:** The `huntr boards get` CLI command currently hits a legacy, non-JSON route whose output still uses a `lists` field instead of `_lists`. The structure below reflects the canonical API shape returned by `GET /user/boards`; the CLI command will be updated to match this schema.
+
 ```json
 {
-  "id": "68bf9e33f871e5004a5eb58e",
-  "_id": "68bf9e33f871e5004a5eb58e",
+  "id": "<boardId>",
+  "_id": "<boardId>",
   "name": "Job Search 2025",
   "isArchived": false,
   "createdAt": "2025-09-09T03:25:39.770Z",
   "updatedAt": "2026-01-22T18:23:46.492Z",
   "_lists": [
-    "68bf9e33f871e5004a5eb592",
-    "68bf9e33f871e5004a5eb593"
+    "<listId1>",
+    "<listId2>"
   ]
 }
 ```
@@ -282,11 +289,11 @@ huntr me --json | jq 'keys'
 
 ```json
 {
-  "_id": "68bf9e33f871e5004a5eb593",
-  "id": "68bf9e33f871e5004a5eb593",
+  "_id": "<listId>",
+  "id": "<listId>",
   "name": "applied",
-  "_board": "68bf9e33f871e5004a5eb58e",
-  "_jobs": ["695ab63801de6a0051c0b03c"],
+  "_board": "<boardId>",
+  "_jobs": ["<jobId>"],
   "stageType": "APPLY",
   "suggestedActivityCategoryNames": ["Follow Up", "Reach Out"],
   "createdAt": "2025-09-09T03:25:39.779Z",
@@ -299,16 +306,16 @@ huntr me --json | jq 'keys'
 
 ```json
 {
-  "_id": "695ab63801de6a0051c0b03c",
-  "id": "695ab63801de6a0051c0b03c",
+  "_id": "<jobId>",
+  "id": "<jobId>",
   "title": "Software Architect",
   "url": "https://...",
   "rootDomain": "icims.com",
   "htmlDescription": "<p>...</p>",
-  "_company": "58bf62e1e281d9000c2a5cb8",
-  "_list": "68bf9e33f871e5004a5eb593",
-  "_board": "68bf9e33f871e5004a5eb58e",
-  "_activities": ["695ab63e36ff3901e24c45f0"],
+  "_company": "<companyId>",
+  "_list": "<listId>",
+  "_board": "<boardId>",
+  "_activities": ["<activityId>"],
   "_interviewActivities": [],
   "_contacts": [],
   "_todos": [],
@@ -342,7 +349,7 @@ huntr me --json | jq 'keys'
   "data": {
     "_job": "job_001",
     "_company": "company_1",
-    "_board": "68bf9e33f871e5004a5eb58e",
+    "_board": "<boardId>",
     "_fromList": "list_1",
     "_toList": "list_2",
     "job": {
