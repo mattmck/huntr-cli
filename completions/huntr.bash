@@ -37,7 +37,7 @@ _huntr_completions() {
       ;;
     jobs)
       if [[ $cword -eq 2 ]]; then
-        COMPREPLY=($(compgen -W "list get" -- "$cur"))
+        COMPREPLY=($(compgen -W "list get stats" -- "$cur"))
       elif [[ $cword -gt 2 ]]; then
         case ${words[2]} in
           list)
@@ -45,6 +45,9 @@ _huntr_completions() {
             ;;
           get)
             COMPREPLY=($(compgen -W "$format_opts $global_opts" -- "$cur"))
+            ;;
+          stats)
+            COMPREPLY=($(compgen -W "-f --format json table csv $global_opts --since -j --json" -- "$cur"))
             ;;
         esac
       fi

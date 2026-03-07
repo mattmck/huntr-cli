@@ -216,6 +216,22 @@ Get details for a specific job:
 huntr jobs get <board-id> <job-id>
 ```
 
+Show monthly application statistics:
+
+```bash
+# JSON output (default) — applied, rejected, no response per month (includes TOTAL summary when results are present)
+huntr jobs stats <board-id>
+
+# Table format for easy reading
+huntr jobs stats <board-id> --format table
+
+# Filter to months on or after a date
+huntr jobs stats <board-id> --since 2025-01-01 --format table
+
+# CSV export
+huntr jobs stats <board-id> --format csv --since 2025-06-01
+```
+
 ### Activities
 
 List activities (job tracking actions you've taken):
