@@ -6,6 +6,12 @@ import { BoardList } from './types/personal';
 import { TokenManager } from './config/token-manager';
 import { ClerkSessionManager } from './config/clerk-session-manager';
 import { captureSession, checkCdpSession } from './commands/capture-session';
+import {
+  formatCsvWithFields,
+  formatJsonWithFields,
+  formatTableWithFields,
+  validateFields,
+} from './lib/list-options';
 import { version } from '../package.json';
 
 const program = new Command();
@@ -442,47 +448,35 @@ Examples:
         totals.noResponse += stats.noResponse;
       }
 
-      if (sorted.length === 0) {
-        if (format === 'json') {
-          console.log('[]');
-        } else {
-          console.log('No jobs found.');
-        }
-      } else if (format === 'json') {
-        const result = sorted.map(([month, stats]) => ({
-          month,
-          applied: stats.applied,
-          rejected: stats.rejected,
-          noResponse: stats.noResponse,
-        }));
+      const fields = validateFields(['month', 'applied', 'rejected', 'noResponse']);
+      const result = sorted.map(([month, stats]) => ({
+        month,
+        applied: stats.applied,
+        rejected: stats.rejected,
+        noResponse: stats.noResponse,
+      }));
+
+      if (result.length > 0) {
         result.push({
           month: 'TOTAL',
           applied: totals.applied,
           rejected: totals.rejected,
           noResponse: totals.noResponse,
         });
-        console.log(JSON.stringify(result, null, 2));
+      }
+
+      if (result.length === 0) {
+        if (format === 'json') {
+          console.log(formatJsonWithFields(result, fields));
+        } else {
+          console.log('No jobs found.');
+        }
+      } else if (format === 'json') {
+        console.log(formatJsonWithFields(result, fields));
       } else if (format === 'csv') {
-        const rows = sorted.map(([month, stats]) => [month, stats.applied, stats.rejected, stats.noResponse]);
-        rows.push(['TOTAL', totals.applied, totals.rejected, totals.noResponse]);
-        printCsv(
-          ['month', 'applied', 'rejected', 'no_response'],
-          rows,
-        );
+        console.log(formatCsvWithFields(result, fields));
       } else {
-        const rows = sorted.map(([month, stats]) => ({
-          Month: month,
-          Applied: stats.applied,
-          Rejected: stats.rejected,
-          'No Response': stats.noResponse,
-        }));
-        rows.push({
-          Month: 'TOTAL',
-          Applied: totals.applied,
-          Rejected: totals.rejected,
-          'No Response': totals.noResponse,
-        });
-        console.table(rows);
+        console.log(formatTableWithFields(result, fields));
       }
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
