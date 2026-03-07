@@ -156,15 +156,6 @@ async function getApi(token?: string): Promise<HuntrPersonalApi> {
   return new HuntrPersonalApi(provider);
 }
 
-function isListWithIdName(value: unknown): value is { id: string; name: string } {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const candidate = value as { id?: unknown; name?: unknown };
-  return typeof candidate.id === 'string' && typeof candidate.name === 'string';
-}
-
 program
   .name('huntr')
   .description('CLI tool for Huntr')
@@ -302,9 +293,7 @@ jobs
       ]);
 
       const listNames = new Map(
-        Object.values(listsMap)
-          .filter(isListWithIdName)
-          .map(l => [l.id, l.name]),
+        Object.values(listsMap).map(l => [l.id, l.name]),
       );
       const sorted = [...jobsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const filtered = applyLimit(filterByDateRange(sorted, j => j.createdAt, range), options.limit);
