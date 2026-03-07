@@ -4,7 +4,7 @@ This document captures the actual raw API endpoints used by huntr-cli, their res
 
 ## Authentication
 
-All requests use a `Authorization: Bearer <token>` header. Tokens are short-lived JWTs obtained via Clerk session refresh. See `src/config/clerk-session-manager.ts`.
+All requests use an `Authorization: Bearer <token>` header. Tokens are short-lived JWTs obtained via Clerk session refresh. See `src/config/clerk-session-manager.ts`.
 
 ---
 
@@ -17,13 +17,13 @@ Returns the authenticated user's profile.
 **Response:**
 ```json
 {
-  "_id": "66688215168bb20075e89571",
+  "_id": "<userId>",
   "email": "user@example.com",
-  "givenName": "Matthew",
-  "familyName": "McKnight",
-  "fullName": "Matthew McKnight",
-  "auth0IdForMixpanel": "66688215168bb20075e89571",
-  "id": "66688215168bb20075e89571"
+  "givenName": "<givenName>",
+  "familyName": "<familyName>",
+  "fullName": "<fullName>",
+  "auth0IdForMixpanel": "<userId>",
+  "id": "<userId>"
 }
 ```
 
@@ -41,24 +41,24 @@ Returns all boards for the authenticated user as an **object map** keyed by boar
     "_members": [],
     "_invitations": [],
     "_lists": [
-      "68bf9e33f871e5004a5eb592",
-      "68bf9e33f871e5004a5eb593"
+      "<listId1>",
+      "<listId2>"
     ],
-    "_id": "68bf9e33f871e5004a5eb58e",
+    "_id": "<boardId>",
     "_user": {
-      "_id": "66688215168bb20075e89571",
+      "_id": "<userId>",
       "email": "user@example.com",
-      "givenName": "Matthew",
-      "familyName": "McKnight",
-      "fullName": "Matthew McKnight",
-      "id": "66688215168bb20075e89571"
+      "givenName": "<givenName>",
+      "familyName": "<familyName>",
+      "fullName": "<fullName>",
+      "id": "<userId>"
     },
     "name": "Job Search 2025",
     "createdAt": "2025-09-09T03:25:39.770Z",
     "updatedAt": "2026-01-22T18:23:46.492Z",
     "__v": 8,
     "organization": null,
-    "id": "68bf9e33f871e5004a5eb58e"
+    "id": "<boardId>"
   }
 }
 ```
@@ -75,16 +75,16 @@ Returns all lists for a board as an **object map** keyed by list ID. This is the
 ```json
 {
   "<listId>": {
-    "_id": "68bf9e33f871e5004a5eb593",
+    "_id": "<listId>",
     "name": "applied",
-    "_board": "68bf9e33f871e5004a5eb58e",
+    "_board": "<boardId>",
     "_jobs": ["<jobId>", "..."],
     "stageType": "APPLY",
     "suggestedActivityCategoryNames": ["Follow Up", "Reach Out"],
     "createdAt": "2025-09-09T03:25:39.779Z",
     "updatedAt": "2026-03-06T22:36:02.131Z",
     "__v": 0,
-    "id": "68bf9e33f871e5004a5eb593"
+    "id": "<listId>"
   }
 }
 ```
@@ -114,19 +114,19 @@ Returns all jobs for a board as an **object map** keyed by job ID.
 {
   "jobs": {
     "<jobId>": {
-      "_id": "695ab63801de6a0051c0b03c",
-      "id": "695ab63801de6a0051c0b03c",
+      "_id": "<jobId>",
+      "id": "<jobId>",
       "title": "Software Architect",
       "url": "https://...",
       "rootDomain": "icims.com",
       "htmlDescription": "<p>...</p>",
       "titleBaseKeyword": "Software Architect",
-      "_company": "58bf62e1e281d9000c2a5cb8",
-      "_list": "68bf9e33f871e5004a5eb593",
-      "_board": "68bf9e33f871e5004a5eb58e",
-      "_creatorUser": "66688215168bb20075e89571",
-      "_ownerUser": "66688215168bb20075e89571",
-      "_activities": ["695ab63e36ff3901e24c45f0"],
+      "_company": "<companyId>",
+      "_list": "<listId>",
+      "_board": "<boardId>",
+      "_creatorUser": "<userId>",
+      "_ownerUser": "<userId>",
+      "_activities": ["<activityId>"],
       "_interviewActivities": [],
       "_contacts": [],
       "_todos": [],
