@@ -66,27 +66,14 @@ jobs:
           zip -r ../dist-archives/huntr-cli-${{ steps.package.outputs.version }}.zip .
           cd ..
 
-      - name: Generate changelog
-        id: changelog
-        run: |
-          # Get commits since last tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            COMMITS=$(git log --oneline --format="- %s")
-          else
-            COMMITS=$(git log "$LAST_TAG..HEAD" --oneline --format="- %s")
-          fi
-
-          # Save to file for use in release body
-          echo "$COMMITS" > changelog.txt
-
       - name: Create GitHub Release
         if: steps.check_tag.outputs.exists == 'false'
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.package.outputs.tag }}
           name: Version ${{ steps.package.outputs.version }}
-          bodyFile: changelog.txt
+          commit: ${{ github.sha }}
+          generateReleaseNotes: true
           draft: false
           prerelease: ${{ contains(steps.package.outputs.version, '-') }}
           token: ${{ secrets.GITHUB_TOKEN }}
